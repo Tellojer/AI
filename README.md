@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/33689193/README.md)
 # Inteligencia Artificial
 
 Este repositorio reúne proyectos de inteligencia artificial y aprendizaje automático hechos en Python. Cada proyecto parte de un problema real y un conjunto de datos público, y llega hasta un modelo evaluado y sus conclusiones. Los resultados se presentan como reportes que se pueden leer sin entrar al código, en formato Jupyter Notebook (`.ipynb`) y en HTML.
@@ -13,7 +12,7 @@ Modelos supervisados que asignan a cada caso una categoría o una probabilidad d
 
 | # | Proyecto | Problema | Modelos |
 |---|---|---|---|
-| 1 | [Riesgo de diabetes con regresión logística](Clasificación/01-Diabetes-regresion-logistica/) | Identificar a personas con diabetes o prediabetes a partir de sus hábitos y su estado de salud | Regresión logística |
+| 1 | [Riesgo de diabetes con regresión logística](Clasificacion/01-Diabetes-regresion-logistica/) | Identificar a personas con diabetes o prediabetes a partir de sus hábitos y su estado de salud | Regresión logística |
 | 2 | [Riesgo de diabetes: LDA vs. árboles de decisión](Clasificacion/02-Diabetes-LDA-arboles/) | Distinguir entre sin diabetes, prediabetes y diabetes | LDA, árbol de decisión |
 | 3 | [Mortalidad hospitalaria con ensambles y redes neuronales](Clasificacion/03-Mortalidad-ensambles/) | Anticipar desde el tercer día de hospitalización qué pacientes no sobrevivirán | Random Forest, Boosting, SVM, red neuronal |
 | 4 | [Pronóstico de mortalidad y tablero interactivo](Clasificacion/04-Pronostico-mortalidad/) | Elegir el mejor modelo para estimar si un paciente morirá y cuándo | Seis modelos comparados y un tablero web |
