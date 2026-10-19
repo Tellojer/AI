@@ -6,6 +6,17 @@ Los proyectos están agrupados por tipo de problema. Cada carpeta tiene su propi
 
 ## Índice
 
+### [Regresión](Regresion/)
+
+Modelos que estiman un valor numérico y explican qué variables se asocian con él.
+
+| # | Proyecto | Problema | Modelos |
+|---|---|---|---|
+| 1 | [Análisis exploratorio del nivel de obesidad](Regresion/01-Obesidad-analisis-exploratorio/) | Describir una población por sus niveles de obesidad y la relación del peso con ellos | Análisis exploratorio y descriptivo |
+| 2 | [¿El dinero explica la felicidad de los países?](Regresion/02-Felicidad-regresion-lineal/) | Medir qué tanto explican el PIB y los factores sociales la felicidad de 141 países | Regresión lineal simple y múltiple |
+| 3 | [Predicción de calificaciones](Regresion/03-Calificaciones-seleccion-caracteristicas/) | Predecir la calificación final de un estudiante con la menor cantidad de variables | Regresión lineal múltiple con selección *stepwise* |
+| 4 | [Malestar psicológico y consumo de sustancias](Regresion/04-Malestar-psicologico-ENCODAT/) | Medir la asociación entre consumo de alcohol y drogas y malestar psicológico en México | Regresión lineal múltiple, KNN e inferencia |
+
 ### [Clasificación](Clasificacion/)
 
 Modelos supervisados que asignan a cada caso una categoría o una probabilidad de pertenecer a ella.
