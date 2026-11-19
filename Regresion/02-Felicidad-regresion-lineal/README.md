@@ -24,7 +24,12 @@ En este proyecto se modela el índice de felicidad de 141 países. Primero se us
 
 | Archivo | Contenido |
 |---|---|
-| [`reporte.ipynb`](reporte.ipynb) | Reporte completo con código, tablas y figuras |
-| [`reporte.html`](reporte.html) | El mismo reporte en HTML, sin código |
+| [`reporte2.ipynb`](reporte2.ipynb) | Reporte completo con código, tablas y figuras |
+| [`reporte2.html`](reporte2.html) | El mismo reporte en HTML, sin código |
+| [`02-Felicidad-regresion-lineal.pdf`](02-Felicidad-regresion-lineal.pdf) | El mismo reporte en PDF |
 | [`felicidad.csv`](felicidad.csv) | Base de datos utilizada |
 | [World Happiness Report 2022](https://worldhappiness.report/ed/2022/) | Fuente de las variables agregadas |
+
+## Referencias
+
+- Helliwell, J. F., Layard, R., Sachs, J. D., De Neve, J.-E., Aknin, L. B., & Wang, S. (Eds.). (2022). *World happiness report 2022*. Sustainable Development Solutions Network. https://worldhappiness.report/ed/2022/

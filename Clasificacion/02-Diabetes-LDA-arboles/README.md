@@ -23,6 +23,13 @@ En este proyecto se comparan dos enfoques muy distintos para clasificar en estas
 
 | Archivo | Contenido |
 |---|---|
-| [`reporte.ipynb`](reporte.ipynb) | Reporte completo con código, tablas y figuras |
-| [`reporte.html`](reporte.html) | El mismo reporte en HTML, sin código |
+| [`reporte2.ipynb`](reporte2.ipynb) | Reporte completo con código, tablas y figuras |
+| [`reporte2.html`](reporte2.html) | El mismo reporte en HTML, sin código |
+| [`02-Diabetes-LDA-arboles.pdf`](02-Diabetes-LDA-arboles.pdf) | El mismo reporte en PDF |
 | [Diabetes Health Indicators Dataset (Kaggle)](https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset) | Base de datos utilizada (archivo `diabetes_012_health_indicators_BRFSS2015.csv`) |
+
+## Referencias
+
+- National Institute of Diabetes and Digestive and Kidney Diseases. (s. f.). *Síntomas y causas de la diabetes*. https://www.niddk.nih.gov/health-information/informacion-de-la-salud/diabetes/informacion-general/sintomas-causas
+- Teboul, A. (2021). *Diabetes health indicators dataset* [Conjunto de datos]. Kaggle. https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset
+- World Health Organization. (2024, 14 de noviembre). *Diabetes*. https://www.who.int/es/news-room/fact-sheets/detail/diabetes

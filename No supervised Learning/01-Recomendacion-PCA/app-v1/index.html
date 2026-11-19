@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Califica 10 películas o libros que conozcas y recibe recomendaciones hechas con PCA (matrix completion).">
+<title>Off-script</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Limelight&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..600&family=Albert+Sans:wght@400;500;600&display=swap">
+<style>
+/* Cineteca nocturna: una sola columna editorial alineada a la izquierda; la marquesina (bombillas de latón) es el único gesto fuerte. */
+:root {
+  color-scheme: dark;
+  --noche: #1b1213;        /* fondo: sala oscura, negro con sangre de terciopelo */
+  --terciopelo: #2b1a1d;   /* superficies */
+  --butaca: #6b2a35;       /* selección / acento profundo */
+  --laton: #e2b45e;        /* bombillas, estrellas, CTA */
+  --pantalla: #f3e8d6;     /* texto: luz de proyector */
+  --humo: #ad9b8f;         /* texto secundario */
+  --linea: rgba(243, 232, 214, .13);
+  --sombra: rgba(8, 3, 4, .55);
+  --acento-rgb: 226, 180, 94;
+  --sup2: #2f1d21;         /* menús flotantes */
+  --sobre: #2a1609;        /* texto sobre el acento */
+  --f-marquesina: "Limelight", "Bodoni Moda", Georgia, serif;
+  --f-titulo: "Bodoni Moda", "Didot", Georgia, serif;
+  --f-texto: "Albert Sans", "Helvetica Neue", Arial, sans-serif;
+  --r: 6px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--noche); color: var(--pantalla);
+  font: 16px/1.55 var(--f-texto);
+  -webkit-font-smoothing: antialiased;
+}
+body::before { /* grano de película, muy sutil */
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: .06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.wrap { max-width: 1160px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 40px); }
+h1, h2, h3 { font-family: var(--f-titulo); font-weight: 500; text-wrap: balance; margin: 0; }
+h2 { font-size: clamp(1.9rem, 4vw, 2.8rem); line-height: 1.08; letter-spacing: -.01em; }
+h3 { font-size: 1.25rem; line-height: 1.2; }
+p { margin: 0; }
+a { color: var(--laton); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--laton); outline-offset: 3px; border-radius: 3px; }
+.muted { color: var(--humo); }
+
+/* ---------- Barra superior ---------- */
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  background: color-mix(in srgb, var(--noche) 88%, transparent); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--linea);
+}
+.top .wrap { display: flex; align-items: center; gap: 20px; min-height: 60px; }
+.marca { font-family: var(--f-marquesina); font-size: 1.55rem; letter-spacing: .04em; color: var(--laton); text-decoration: none; background: none; border: 0; cursor: pointer; padding: 0; }
+.nav { display: flex; gap: 4px; margin-left: auto; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.nav::-webkit-scrollbar { display: none; }
+.nav button { white-space: nowrap; background: none; border: 0; padding: 8px 12px; border-radius: 999px; color: var(--humo); cursor: pointer; font-size: .95rem; }
+.nav button[aria-current="page"] { color: var(--pantalla); background: var(--terciopelo); }
+.nav button:hover { color: var(--pantalla); }
+
+/* ---------- Inicio ---------- */
+.hero { padding-block: clamp(40px, 8vw, 88px) 32px; display: grid; gap: 28px; }
+.marquesina {
+  font-family: var(--f-marquesina); font-weight: 400; color: var(--laton);
+  font-size: clamp(3.3rem, 12.5vw, 9rem); line-height: .95; letter-spacing: .01em;
+  text-shadow: 0 0 18px rgba(var(--acento-rgb), .35), 0 0 2px rgba(var(--acento-rgb), .8);
+}
+.bombillas { display: flex; gap: clamp(10px, 2.2vw, 22px); margin-top: 6px; }
+.bombillas i { width: 9px; height: 9px; border-radius: 50%; background: var(--laton); box-shadow: 0 0 10px 2px rgba(var(--acento-rgb), .55); animation: foco 3.2s ease-in-out infinite; }
+@keyframes foco { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+.lema { font-family: var(--f-titulo); font-size: clamp(1.35rem, 2.6vw, 1.9rem); line-height: 1.3; max-width: 30ch; font-style: italic; }
+.lema-sub { max-width: 58ch; color: var(--humo); }
+
+.taquillas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; padding-block: 8px 56px; }
+.taquilla {
+  position: relative; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: end;
+  text-align: left; cursor: pointer; padding: 26px; border-radius: 14px; min-height: 260px; overflow: hidden;
+  background: linear-gradient(160deg, var(--terciopelo), var(--noche) 85%);
+  border: 1px solid var(--linea); transition: border-color .25s, transform .25s;
+}
+.taquilla:hover { border-color: rgba(var(--acento-rgb), .5); transform: translateY(-2px); }
+.taquilla h3 { font-size: clamp(1.9rem, 3.4vw, 2.5rem); font-style: italic; }
+.taquilla .dato { color: var(--humo); font-size: .92rem; margin-top: 6px; }
+.taquilla .ir { display: inline-block; margin-top: 18px; color: var(--laton); font-weight: 600; }
+.abanico { position: relative; width: 150px; height: 190px; }
+.abanico .portada { position: absolute; width: 104px; bottom: 0; box-shadow: 0 12px 30px var(--sombra); }
+.abanico .portada:nth-child(1) { left: 0; transform: rotate(-9deg); }
+.abanico .portada:nth-child(2) { left: 24px; transform: rotate(-1deg); z-index: 1; }
+.abanico .portada:nth-child(3) { left: 46px; transform: rotate(8deg); z-index: 2; }
+
+/* ---------- Portadas ---------- */
+.portada { position: relative; aspect-ratio: 2 / 3; width: 100%; max-width: 100%; border-radius: 4px; overflow: hidden; background: var(--terciopelo); }
+.portada img { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; object-fit: cover; display: block; }
+.portada .gen { /* portada tipográfica cuando no hay imagen */
+  position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between;
+  padding: 11% 10%; color: var(--pantalla); background: var(--tinta, #3a1d24);
+}
+.portada .gen::after { content: ""; position: absolute; inset: 5%; border: 1px solid rgba(var(--acento-rgb), .45); pointer-events: none; }
+.portada .gen b { font-family: var(--f-titulo); font-style: italic; font-weight: 500; font-size: clamp(.8rem, 1.5vw, 1.05rem); line-height: 1.15; overflow-wrap: anywhere; }
+.portada .gen span { font-size: .68rem; letter-spacing: .06em; color: rgba(243, 232, 214, .7); }
+
+/* ---------- Estrellas (bombillas) ---------- */
+.estrellas { display: inline-flex; gap: 3px; touch-action: manipulation; }
+.estrellas.editable { cursor: pointer; }
+.est { position: relative; width: 22px; height: 22px; display: block; }
+.est svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.est .vacia { fill: none; stroke: rgba(243, 232, 214, .32); stroke-width: 1.4; }
+.est .llena { fill: var(--laton); clip-path: inset(0 100% 0 0); transition: clip-path .18s ease; filter: drop-shadow(0 0 4px rgba(var(--acento-rgb), .65)); }
+.est[data-f="1"] .llena { clip-path: inset(0 0 0 0); }
+.est[data-f="h"] .llena { clip-path: inset(0 50% 0 0); }
+.est.pop .llena { animation: pop .42s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes pop { 0% { transform: scale(.6); opacity: .3; } 60% { transform: scale(1.18); opacity: 1; } 100% { transform: scale(1); } }
+.estrellas.mini .est { width: 14px; height: 14px; }
+.estrellas.mini { gap: 2px; }
+
+/* ---------- Calificar ---------- */
+.etapa { padding-block: 32px 72px; display: grid; gap: 24px; }
+.cabecera { display: grid; gap: 10px; }
+.cabecera p { max-width: 62ch; color: var(--humo); }
+.barra-progreso {
+  position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--alto-top, 61px) + 8px); z-index: 10;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; padding: 14px 18px; border-radius: 12px;
+  background: color-mix(in srgb, var(--terciopelo) 92%, transparent); backdrop-filter: blur(8px); border: 1px solid var(--linea);
+}
+.cinta { display: flex; gap: 5px; }
+.cinta i { width: 16px; height: 22px; border-radius: 2px; border: 1px solid rgba(243, 232, 214, .25); transition: background .3s, box-shadow .3s; }
+.cinta i.on { background: var(--laton); border-color: var(--laton); box-shadow: 0 0 8px rgba(var(--acento-rgb), .6); }
+.cuenta { font-variant-numeric: tabular-nums; font-size: .95rem; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; border: 0; cursor: pointer; border-radius: 999px;
+  padding: 11px 20px; font-weight: 600; background: var(--laton); color: var(--sobre); transition: filter .2s, opacity .2s;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn[disabled] { opacity: .35; cursor: not-allowed; filter: none; }
+.btn.sec { background: transparent; color: var(--pantalla); border: 1px solid var(--linea); font-weight: 500; }
+.btn.sec:hover { border-color: rgba(243, 232, 214, .4); }
+.barra-progreso .acciones { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+
+.buscador { position: relative; max-width: 520px; }
+.buscador input {
+  width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--linea);
+  background: var(--terciopelo); color: var(--pantalla); font: inherit;
+}
+.buscador input::placeholder { color: var(--humo); }
+.sugerencias { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 15; background: var(--sup2); border: 1px solid var(--linea); border-radius: 10px; overflow: hidden; box-shadow: 0 18px 40px var(--sombra); }
+.sugerencias button { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: center; width: 100%; text-align: left; padding: 8px 12px; background: none; border: 0; cursor: pointer; }
+.sugerencias button:hover, .sugerencias button:focus-visible { background: var(--butaca); }
+.sugerencias .portada { width: 34px; }
+.sugerencias .portada .gen b { font-size: .45rem; }
+.sugerencias .portada .gen span { display: none; }
+.sugerencias small { color: var(--humo); display: block; }
+
+.rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 168px), 1fr)); gap: 28px 20px; }
+.ficha { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.ficha h3 { font-size: 1.02rem; line-height: 1.25; overflow-wrap: anywhere; }
+.ficha .meta { font-size: .84rem; color: var(--humo); line-height: 1.35; overflow-wrap: anywhere; }
+.ficha .portada { transition: box-shadow .3s, transform .3s; }
+.ficha.calificada .portada { box-shadow: 0 0 0 2px var(--laton), 0 10px 30px rgba(var(--acento-rgb), .18); }
+.ficha .fila { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.saltar { background: none; border: 0; padding: 2px 0; color: var(--humo); font-size: .82rem; cursor: pointer; text-decoration: underline; text-decoration-color: var(--linea); text-underline-offset: 3px; }
+.saltar:hover { color: var(--pantalla); }
+
+/* ---------- Programa (resultados) ---------- */
+.estelar {
+  display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: clamp(20px, 4vw, 44px); align-items: center;
+  padding: clamp(20px, 4vw, 36px); border-radius: 16px; position: relative;
+  background: radial-gradient(120% 140% at 0% 0%, rgba(var(--acento-rgb), .12), transparent 55%), var(--terciopelo);
+  border: 1px solid rgba(var(--acento-rgb), .28);
+}
+.estelar .portada { box-shadow: 0 20px 50px var(--sombra); }
+.estelar .rotulo { color: var(--laton); font-family: var(--f-titulo); font-style: italic; font-size: 1.1rem; }
+.estelar h3 { font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.05; margin-top: 6px; }
+.estelar .meta { color: var(--humo); margin-top: 8px; }
+.prediccion { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+.prediccion strong { font-family: var(--f-titulo); font-size: 1.7rem; font-variant-numeric: tabular-nums; }
+.porque { margin-top: 14px; max-width: 52ch; color: var(--pantalla); }
+.porque em { font-family: var(--f-titulo); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--linea); background: none; border-radius: 999px; padding: 6px 14px; cursor: pointer; color: var(--humo); font-size: .9rem; }
+.chip[aria-pressed="true"] { background: var(--butaca); color: var(--pantalla); border-color: transparent; }
+.chip.tag { cursor: default; padding: 3px 10px; font-size: .8rem; }
+.pred-mini { display: flex; align-items: center; gap: 6px; font-size: .84rem; font-variant-numeric: tabular-nums; color: var(--pantalla); }
+.ya-vi { margin-top: 2px; }
+.aviso { font-size: .88rem; color: var(--humo); border-left: 2px solid var(--butaca); padding-left: 12px; max-width: 70ch; }
+
+/* ---------- Biblioteca ---------- */
+.cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px; }
+.cifra { padding: 18px 20px; border-top: 1px solid var(--linea); }
+.cifra strong { display: block; font-family: var(--f-titulo); font-size: 2.2rem; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.cifra span { color: var(--humo); font-size: .9rem; }
+.registro { display: grid; gap: 0; border-top: 1px solid var(--linea); }
+.registro li { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--linea); }
+.registro ul, ul.registro { list-style: none; margin: 0; padding: 0; }
+.registro .portada { width: 40px; }
+.registro .portada .gen b { font-size: .5rem; }
+.registro .portada .gen span { display: none; }
+.registro small { color: var(--humo); }
+.vacio { padding: 28px; border: 1px dashed var(--linea); border-radius: 12px; color: var(--humo); max-width: 70ch; display: grid; gap: 8px; }
+.vacio strong { color: var(--pantalla); font-family: var(--f-titulo); font-size: 1.2rem; font-weight: 500; }
+
+/* ---------- Cómo funciona ---------- */
+.pasos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 28px; counter-reset: paso; }
+.paso { display: grid; gap: 8px; align-content: start; }
+.paso::before { counter-increment: paso; content: counter(paso); font-family: var(--f-marquesina); color: var(--laton); font-size: 2.2rem; line-height: 1; }
+.paso p { color: var(--humo); }
+.formula { font-family: var(--f-titulo); font-style: italic; color: var(--pantalla); font-size: 1.05rem; }
+ol.pasos { list-style: none; margin: 0; padding: 0; }
+.pasos.cuatro { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+.algoritmo { border-top: 1px solid var(--linea); }
+.tabla { overflow-x: auto; }
+.tabla table { border-collapse: collapse; min-width: 520px; width: 100%; max-width: 820px; font-variant-numeric: tabular-nums; }
+.tabla th, .tabla td { text-align: left; padding: 12px 16px 12px 0; border-bottom: 1px solid var(--linea); }
+.tabla th { color: var(--humo); font-weight: 500; font-size: .9rem; }
+.tabla td + td, .tabla th + th { text-align: right; }
+.tabla tr.gana td { color: var(--laton); font-weight: 600; }
+footer { border-top: 1px solid var(--linea); padding-block: 28px 40px; color: var(--humo); font-size: .86rem; }
+footer .wrap { display: grid; gap: 6px; }
+
+.cargando { padding-block: 80px; color: var(--humo); font-family: var(--f-titulo); font-style: italic; font-size: 1.3rem; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 60; background: var(--pantalla); color: var(--noche); padding: 10px 18px; border-radius: 999px; font-weight: 500; box-shadow: 0 10px 30px var(--sombra); }
+
+@media (max-width: 640px) {
+  .estelar { grid-template-columns: 1fr; }
+  .estelar .portada { max-width: 170px; }
+  .taquilla { grid-template-columns: 1fr; }
+  .abanico { order: -1; }
+  .top { backdrop-filter: none; background: var(--noche); }   /* si no, el menú fijo se ancla al encabezado */
+  .top .wrap { gap: 12px; min-height: 52px; }
+  .marca { font-size: 1.35rem; }
+  /* menú inferior tipo app */
+  body { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px)); }
+  .nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; margin: 0; gap: 0; overflow: visible;
+    padding-bottom: env(safe-area-inset-bottom, 0px); justify-content: space-around;
+    background: color-mix(in srgb, var(--noche) 94%, transparent); backdrop-filter: blur(12px); border-top: 1px solid var(--linea);
+  }
+  .nav button { flex: 1; padding: 14px 4px 13px; font-size: .8rem; border-radius: 0; text-align: center; }
+  .nav button[aria-current="page"] { background: none; color: var(--laton); box-shadow: inset 0 2px 0 var(--laton); }
+  .toast { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+  /* estrellas al tamaño del dedo */
+  .estrellas.editable { gap: 3px; }
+  .estrellas.editable .est { width: 29px; height: 29px; }
+  .ficha .fila { gap: 4px; }
+  /* filtros en una fila deslizable */
+  .chips[role="group"] { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; padding-bottom: 2px; }
+  .chips[role="group"]::-webkit-scrollbar { display: none; }
+  .chip { white-space: nowrap; flex: none; }
+  .estelar { padding: 18px; gap: 16px; }
+  .estelar h3 { font-size: 1.9rem; }
+  .prediccion { flex-wrap: wrap; gap: 8px; }
+  .hero { padding-block: 32px 20px; gap: 20px; }
+  .taquilla { min-height: 0; padding: 20px; }
+  .barra-progreso { padding: 10px 12px; gap: 10px; }
+  .cinta i { width: 12px; height: 17px; }
+  .barra-progreso .acciones { margin-left: 0; width: 100%; }
+  .barra-progreso .acciones .btn { flex: 1; justify-content: center; padding: 9px 12px; }
+  .rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <button class="marca" id="ir-inicio" aria-label="Off-script, ir al inicio">Off-script</button>
+    <nav class="nav" aria-label="Secciones">
+      <button data-ir="peliculas">Películas</button>
+      <button data-ir="libros">Libros</button>
+      <button data-ir="biblioteca">Biblioteca</button>
+      <button data-ir="como">Cómo funciona</button>
+    </nav>
+  </div>
+</header>
+
+<main id="app" class="wrap"></main>
+
+<footer>
+  <div class="wrap">
+    <p>Calificaciones: goodbooks-10k (Goodreads, 2017) y Letterboxd (Kaggle, 2020–2022). Portadas: Goodreads y Letterboxd.</p>
+  </div>
+</footer>
+
+<script>
+/* =================== Configuración =================== */
+const CONFIG = {
+  supabaseUrl: '',        // p. ej. 'https://xxxx.supabase.co'
+  supabaseKey: '',        // clave pública "anon"
+  minCalif: 10,           // calificaciones necesarias para ver el programa
+  semillasVisibles: 15,
+};
+// Pesos del puntaje (calibrados con perfiles de prueba de terror, Marvel, romance, animación, fantasía, misterio y no ficción)
+const AJUSTE = { prior: 0.2, sim: 2, k0: 1000, genero: 1.2, pop: 0.06 };
+const DOMS = {
+  movies: { slug: 'peliculas', nombre: 'Películas', uno: 'película', verbo: 'vista', noVisto: 'No la he visto', yaVi: 'Ya la vi', archivo: 'data/movies' },
+  books:  { slug: 'libros',    nombre: 'Libros',    uno: 'libro',    verbo: 'leído', noVisto: 'No lo he leído', yaVi: 'Ya lo leí', archivo: 'data/books' },
+};
+
+/* =================== Utilidades =================== */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const norm = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('velada:' + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('velada:' + k, JSON.stringify(v)); } catch {} },
+};
+const SESION = store.get('sesion') || (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
+store.set('sesion', SESION);
+function toast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2600);
+}
+const TINTAS = ['#3a1d24', '#1f2b33', '#2d2a1c', '#33202f', '#1e2c26', '#3b2617'];
+function hash(s) { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); }
+
+/* =================== Datos y modelo =================== */
+const cache = {};
+async function cargar(dom) {
+  if (cache[dom]) return cache[dom];
+  const base = DOMS[dom].archivo;
+  const js = await fetch(base + '.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  const k = js.meta.k, n = js.meta.nItems;
+  const bin = atob(js.q), q = new Int8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) q[i] = bin.charCodeAt(i) << 24 >> 24;
+  delete js.q;
+  const B = new Float32Array(n * k);
+  for (let j = 0; j < n; j++) for (let m = 0; m < k; m++) B[j * k + m] = q[j * k + m] * js.meta.scale[m];
+  const norma = new Float32Array(n);
+  for (let j = 0; j < n; j++) { let s = 0; for (let m = 0; m < k; m++) s += B[j * k + m] ** 2; norma[j] = Math.sqrt(s); }
+  const idx = new Map(js.id.map((id, j) => [id, j]));
+  const busq = js.t.map((t, j) => norm(t + ' ' + js.s[j]));
+  return (cache[dom] = { ...js, k, N: n, B, norma, idx, busq });
+}
+
+// Perfil del usuario nuevo: a = (B_S^T B_S + diag(prior))^-1 B_S^T (r - media_u - b)
+// Perfil del usuario nuevo: a = (B_S^T B_S + diag(prior))^-1 B_S^T (r - media_u - b)
+function perfil(D, calif) {
+  const { k, B, meta } = D, ids = Object.keys(calif).filter(id => D.idx.has(id));
+  const r = ids.map(id => calif[id]);
+  const kappa = 3;
+  const mu = (r.reduce((a, b) => a + b, 0) + kappa * meta.gmean) / (r.length + kappa);
+  const A = Array.from({ length: k }, (_, i) => Array.from({ length: k }, (_, j) => (i === j ? meta.prior[i] * AJUSTE.prior : 0)));
+  const v = new Array(k).fill(0), res = {}, dev = {};
+  ids.forEach((id, s) => {
+    const j = D.idx.get(id);
+    const c = r[s] - mu - D.b[j]; res[id] = c; dev[id] = r[s] - mu;
+    for (let a = 0; a < k; a++) {
+      const ba = B[j * k + a]; v[a] += ba * c;
+      for (let b2 = 0; b2 < k; b2++) A[a][b2] += ba * B[j * k + b2];
+    }
+  });
+  return { mu, a: resolver(A, v), res, dev };
+}
+function resolver(A, v) { // Cholesky (A es simétrica positiva definida)
+  const n = v.length, L = Array.from({ length: n }, () => new Float64Array(n));
+  for (let i = 0; i < n; i++) for (let j = 0; j <= i; j++) {
+    let s = A[i][j]; for (let p = 0; p < j; p++) s -= L[i][p] * L[j][p];
+    L[i][j] = i === j ? Math.sqrt(Math.max(s, 1e-9)) : s / L[j][j];
+  }
+  const y = new Float64Array(n);
+  for (let i = 0; i < n; i++) { let s = v[i]; for (let p = 0; p < i; p++) s -= L[i][p] * y[p]; y[i] = s / L[i][i]; }
+  const x = new Float64Array(n);
+  for (let i = n - 1; i >= 0; i--) { let s = y[i]; for (let p = i + 1; p < n; p++) s -= L[p][i] * x[p]; x[i] = s / L[i][i]; }
+  return x;
+}
+function predecir(D, P, j) {
+  let s = P.mu + D.b[j];
+  for (let m = 0; m < D.k; m++) s += P.a[m] * D.B[j * D.k + m];
+  return Math.min(D.meta.max, Math.max(D.meta.min, s));
+}
+function coseno(D, i, j) {
+  let s = 0; for (let m = 0; m < D.k; m++) s += D.B[i * D.k + m] * D.B[j * D.k + m];
+  return s / (D.norma[i] * D.norma[j] + 1e-9);
+}
+// Puntaje final = predicción del modelo (PCA)
+//              + parecido en el espacio de componentes con lo que calificaste por encima de tu promedio
+//              + afinidad con los géneros que calificaste alto
+//              + empujón leve hacia títulos conocidos
+function recomendar(D, calif, vistos, cuantos = 60) {
+  const P = perfil(D, calif), { k, B } = D, rango = D.meta.max - D.meta.min;
+  const minN = D.meta.minRec || 100, out = [];
+  // vector de gustos en el espacio de componentes: suma de cargas normalizadas, pesadas por (calificación - tu promedio)
+  const gusto = new Float64Array(k); let pesoTot = 0;
+  const afin = new Float64Array(D.genres.length), cuenta = new Float64Array(D.genres.length);
+  for (const [id, dv] of Object.entries(P.dev)) {
+    const j = D.idx.get(id), w = dv / (rango / 2);
+    for (let m = 0; m < k; m++) gusto[m] += w * B[j * k + m] / (D.norma[j] + 1e-9);
+    pesoTot += Math.abs(w);
+    for (const g of D.g[j]) { afin[g] += w / D.g[j].length; cuenta[g] += 1 / D.g[j].length; }
+  }
+  for (let g = 0; g < afin.length; g++) afin[g] /= cuenta[g] + 1;
+  for (let j = 0; j < D.N; j++) {
+    const id = D.id[j];
+    if (calif[id] !== undefined || vistos.has(id) || D.n[j] < minN) continue;
+    const p = predecir(D, P, j);
+    let sim = 0; for (let m = 0; m < k; m++) sim += B[j * k + m] * gusto[m];
+    sim = sim / ((D.norma[j] + 1e-9) * (pesoTot + 1e-9)) * D.n[j] / (D.n[j] + AJUSTE.k0);
+    let gen = 0; for (const g of D.g[j]) gen += afin[g] / D.g[j].length;
+    out.push([p / rango + AJUSTE.sim * sim + AJUSTE.genero * gen + AJUSTE.pop * Math.log10(D.n[j]), j, p]);
+  }
+  out.sort((x, y) => y[0] - x[0]);
+  const fav = Object.entries(P.dev).filter(([, dv]) => dv > 0).map(([id]) => D.idx.get(id));
+  // variedad: máximo 2 títulos por autor y sin duplicados
+  const porAutor = {}, elegidos = [], vistosT = new Set();
+  for (const x of out) {
+    const clave = norm(D.t[x[1]]) + '|' + D.y[x[1]];
+    if (vistosT.has(clave)) continue; vistosT.add(clave);
+    const autor = (D.s[x[1]] || '').split(' · ')[0] || D.id[x[1]];
+    if ((porAutor[autor] = (porAutor[autor] || 0) + 1) > 2) continue;
+    elegidos.push(x); if (elegidos.length >= cuantos) break;
+  }
+  return elegidos.map(([, j, p]) => {
+    let mejor = null, mc = 0.1;
+    for (const s of fav) {
+      const comun = D.g[j].filter(g => D.g[s].includes(g)).length / Math.max(1, new Set([...D.g[j], ...D.g[s]]).size);
+      const c = coseno(D, j, s) + 0.3 * comun;
+      if (c > mc) { mc = c; mejor = s; }
+    }
+    return { j, p, porque: mejor };
+  });
+}
+function semillas(D, excluir, cuantas) {
+  const orden = [...Array(D.N).keys()].sort((x, y) => D.n[y] - D.n[x]).slice(0, 320).filter(j => !excluir.has(D.id[j]));
+  const peso = orden.map(j => D.norma[j] * Math.log(D.n[j]) * (0.6 + Math.random()));
+  return orden.map((j, i) => [peso[i], j]).sort((a, b) => b[0] - a[0]).slice(0, cuantas).map(x => x[1]);
+}
+
+/* =================== Biblioteca compartida (Supabase) =================== */
+const biblio = {
+  cliente: null, uid: null, listo: null, error: '',
+  init() {
+    if (!CONFIG.supabaseUrl || !CONFIG.supabaseKey) return Promise.resolve(null);
+    return (this.listo ||= (async () => {
+      try {
+        if (!window.supabase) await new Promise((ok, mal) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';
+          s.onload = ok; s.onerror = mal; document.head.appendChild(s);
+        });
+        const c = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
+        let { data } = await c.auth.getSession();
+        let nueva = false;
+        if (!data.session) { const r = await c.auth.signInAnonymously(); if (r.error) throw r.error; data = r.data; nueva = true; }
+        this.cliente = c; this.uid = data.session?.user?.id || data.user?.id;
+        if (nueva) this.subirLocales();   // lo que se calificó antes de conectarse
+        return c;
+      } catch (e) { this.error = e.message || String(e); console.warn('Biblioteca no disponible:', this.error); return null; }
+    })());
+  },
+  async subirLocales() {
+    const filas = [];
+    for (const dom of ['movies', 'books']) for (const [id, v] of Object.entries(estado.calif[dom]))
+      filas.push({ user_id: this.uid, domain: dom, item_id: id, title: cache[dom]?.t[cache[dom].idx.get(id)] ?? null, rating: v });
+    if (filas.length) { const { error } = await this.cliente.from('ratings').upsert(filas, { onConflict: 'user_id,domain,item_id' }); if (error) this.error = error.message; }
+  },
+  async guardar(dom, id, titulo, valor) {
+    const c = await this.init(); if (!c) return;
+    const { error } = await c.from('ratings').upsert({ user_id: this.uid, domain: dom, item_id: id, title: titulo, rating: valor },
+                                                    { onConflict: 'user_id,domain,item_id' });
+    if (error) { this.error = error.message; console.warn('Supabase:', error.message); }
+  },
+  async borrar(dom, id) {
+    const c = await this.init(); if (!c) return;
+    await c.from('ratings').delete().match({ user_id: this.uid, domain: dom, item_id: id });
+  },
+  async recientes() {
+    const c = await this.init(); if (!c) return null;
+    const [f, st] = await Promise.all([
+      c.from('ratings').select('domain,item_id,title,rating,created_at').order('created_at', { ascending: false }).limit(30),
+      c.from('ratings_stats').select('*').single(),
+    ]);
+    if (f.error) { this.error = f.error.message; return null; }
+    return { filas: f.data, total: st.data?.total || 0, personas: st.data?.personas || 0 };
+  },
+};
+
+/* =================== Estado =================== */
+const estado = {
+  calif: { movies: store.get('calif:movies', {}), books: store.get('calif:books', {}) },
+  vistos: { movies: new Set(store.get('vistos:movies', [])), books: new Set(store.get('vistos:books', [])) },
+  semillas: { movies: [], books: [] },
+  filtro: null,
+};
+function guardarLocal(dom) { store.set('calif:' + dom, estado.calif[dom]); store.set('vistos:' + dom, [...estado.vistos[dom]]); }
+
+/* =================== Componentes =================== */
+function portadaFallo(im) { // 1) imagen original  2) Open Library  3) portada tipográfica
+  if (im.dataset.alt) { im.src = im.dataset.alt; im.dataset.alt = ''; } else im.remove();
+}
+// Goodreads pone una imagen genérica de "sin portada" de 1×1 o muy chica; si llega así, se usa la tipográfica
+document.addEventListener('load', ev => { const im = ev.target; if (im.tagName === 'IMG' && im.closest('.portada') && im.naturalWidth < 20) portadaFallo(im); }, true);
+function portada(D, j, extra = '') {
+  const t = D.t[j], s = D.s[j] || (D.y[j] ? String(D.y[j]) : ''), img = D.img[j] && D.meta.imgPre ? D.meta.imgPre + D.img[j] + (D.meta.imgSuf || '') : D.img[j];
+  const tinta = TINTAS[hash(D.id[j]) % TINTAS.length];
+  const gen = `<div class="gen" style="--tinta:${tinta}"><b>${esc(t)}</b><span>${esc(s.split(' · ')[0])}</span></div>`;
+  const alt = D.isbn && D.isbn[j] ? `https://covers.openlibrary.org/b/isbn/${D.isbn[j]}-M.jpg?default=false` : '';
+  const src = img || alt;
+  const im = src ? `<img src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-alt="${img && alt ? esc(alt) : ''}" onerror="portadaFallo(this)">` : '';
+  return `<div class="portada ${extra}">${gen}${im}</div>`;
+}
+const SVG_EST = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="vacia" d="M12 2.8l2.75 5.86 6.4.77-4.72 4.4 1.22 6.33L12 17.03 6.35 20.16l1.22-6.33-4.72-4.4 6.4-.77z"/><path class="llena" d="M12 2.8l2.75 5.86 6.4.77-4.72 4.4 1.22 6.33L12 17.03 6.35 20.16l1.22-6.33-4.72-4.4 6.4-.77z"/></svg>';
+// valor en escala del dominio -> estrellas 0..5
+const aEstrellas = (D, v) => (D.meta.max === 10 ? v / 2 : v);
+function estrellasHTML(D, v, { editable = false, mini = false, id = '', titulo = '' } = {}) {
+  const e = v == null ? 0 : aEstrellas(D, v);
+  let h = '';
+  for (let i = 1; i <= 5; i++) h += `<span class="est" data-i="${i}" data-f="${e >= i ? 1 : e >= i - 0.5 ? 'h' : 0}">${SVG_EST}</span>`;
+  if (!editable) return `<span class="estrellas ${mini ? 'mini' : ''}" role="img" aria-label="${e.toFixed(1)} de 5 estrellas">${h}</span>`;
+  const paso = D.meta.half ? 0.5 : 1;
+  return `<span class="estrellas editable" tabindex="0" role="slider" aria-label="Tu calificación para ${esc(titulo)}" aria-valuemin="0" aria-valuemax="5" aria-valuenow="${e}" aria-valuetext="${e ? e + ' de 5 estrellas' : 'Sin calificar'}" data-id="${esc(id)}" data-paso="${paso}">${h}</span>`;
+}
+function pintarEstrellas(el, e, animar) {
+  el.querySelectorAll('.est').forEach(s => {
+    const i = +s.dataset.i, f = e >= i ? '1' : e >= i - 0.5 ? 'h' : '0';
+    if (animar && f !== '0' && s.dataset.f === '0') { s.classList.remove('pop'); void s.offsetWidth; s.classList.add('pop'); }
+    s.dataset.f = f;
+  });
+  el.setAttribute('aria-valuenow', e); el.setAttribute('aria-valuetext', e ? e + ' de 5 estrellas' : 'Sin calificar');
+}
+function activarEstrellas(raiz, D, dom, alCambiar) {
+  raiz.querySelectorAll('.estrellas.editable').forEach(el => {
+    const id = el.dataset.id, paso = +el.dataset.paso;
+    const valorDe = ev => {
+      const s = ev.target.closest('.est'); if (!s) return null;
+      const r = s.getBoundingClientRect(), i = +s.dataset.i;
+      return paso === 0.5 && ev.clientX - r.left < r.width / 2 ? i - 0.5 : i;
+    };
+    el.addEventListener('pointermove', ev => { const v = valorDe(ev); if (v) pintarEstrellas(el, v, false); });
+    el.addEventListener('pointerleave', () => pintarEstrellas(el, aEstrellas(D, estado.calif[dom][id] ?? 0) || 0, false));
+    el.addEventListener('click', ev => { const v = valorDe(ev); if (v) fijar(v); });
+    el.addEventListener('keydown', ev => {
+      const actual = aEstrellas(D, estado.calif[dom][id] ?? 0) || 0;
+      if (['ArrowRight', 'ArrowUp'].includes(ev.key)) { ev.preventDefault(); fijar(Math.min(5, actual + paso)); }
+      if (['ArrowLeft', 'ArrowDown'].includes(ev.key)) { ev.preventDefault(); actual - paso > 0 ? fijar(actual - paso) : quitar(); }
+      if (ev.key === 'Delete' || ev.key === 'Backspace') { ev.preventDefault(); quitar(); }
+    });
+    function fijar(e) {
+      const v = D.meta.max === 10 ? Math.round(e * 2) : e;
+      estado.calif[dom][id] = v; estado.vistos[dom].delete(id);
+      pintarEstrellas(el, e, true); guardarLocal(dom);
+      biblio.guardar(dom, id, D.t[D.idx.get(id)], v);
+      alCambiar && alCambiar(id);
+    }
+    function quitar() {
+      delete estado.calif[dom][id]; pintarEstrellas(el, 0, false); guardarLocal(dom); biblio.borrar(dom, id); alCambiar && alCambiar(id);
+    }
+  });
+}
+
+/* =================== Vistas =================== */
+const app = $('#app');
+function marcarNav(clave) { document.querySelectorAll('.nav button').forEach(b => b.dataset.ir === clave ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')); }
+
+async function vistaInicio() {
+  marcarNav(null);
+  app.innerHTML = `
+  <section class="hero">
+    <div>
+      <h1 class="marquesina">Off-script</h1>
+      <div class="bombillas" aria-hidden="true">${Array.from({ length: 9 }, (_, i) => `<i style="animation-delay:${(i * .35).toFixed(2)}s"></i>`).join('')}</div>
+    </div>
+    <p class="lema">Califica diez títulos que conozcas y te armamos el programa de esta noche.</p>
+    <p class="lema-sub">Las recomendaciones salen de millones de calificaciones de lectores de Goodreads y cinéfilos de Letterboxd. Cada calificación que dejas aquí entra a la biblioteca y ayuda a entrenar el siguiente modelo.</p>
+  </section>
+  <section class="taquillas" aria-label="Elige qué quieres que te recomendemos">
+    ${['movies', 'books'].map(d => `
+      <button class="taquilla" data-ir="${DOMS[d].slug}">
+        <div>
+          <h3>${DOMS[d].nombre}</h3>
+          <p class="dato" data-dato="${d}">&nbsp;</p>
+          <span class="ir">Empezar a calificar</span>
+        </div>
+        <div class="abanico" data-abanico="${d}"></div>
+      </button>`).join('')}
+  </section>`;
+  for (const d of ['movies', 'books']) {
+    cargar(d).then(D => {
+      const fmt = x => x.toLocaleString('es-MX');
+      $(`[data-dato="${d}"]`).textContent = `${fmt(D.meta.nRatings)} calificaciones de ${fmt(D.meta.nUsers)} ${d === 'movies' ? 'cinéfilos' : 'lectores'}`;
+      const top = [...Array(D.N).keys()].sort((a, b) => D.n[b] - D.n[a]).slice(0, 3);
+      $(`[data-abanico="${d}"]`).innerHTML = top.map(j => portada(D, j)).join('');
+    }).catch(() => { $(`[data-dato="${d}"]`).textContent = 'No se pudo cargar el catálogo.'; });
+  }
+}
+
+async function vistaCalificar(dom) {
+  const cfg = DOMS[dom]; marcarNav(cfg.slug);
+  app.innerHTML = `<p class="cargando">Encendiendo el proyector…</p>`;
+  let D; try { D = await cargar(dom); } catch { app.innerHTML = `<div class="etapa"><div class="vacio"><strong>No se pudo cargar el catálogo de ${cfg.nombre.toLowerCase()}.</strong>Revisa que los archivos del modelo estén en la carpeta data/ y recarga la página.</div></div>`; return; }
+  if (!estado.semillas[dom].length) estado.semillas[dom] = semillas(D, new Set([...Object.keys(estado.calif[dom]), ...estado.vistos[dom]]), CONFIG.semillasVisibles);
+
+  app.innerHTML = `
+  <section class="etapa">
+    <div class="cabecera">
+      <h2>¿Qué ${dom === 'movies' ? 'películas has visto' : 'libros has leído'}?</h2>
+      <p>Califica al menos ${CONFIG.minCalif}. Entre más califiques, más fino sale tu programa. Si no ${dom === 'movies' ? 'la has visto' : 'lo has leído'}, sáltalo.</p>
+      ${D.meta.demo ? `<p class="aviso">El modelo de películas está en modo de prueba. Las recomendaciones definitivas llegan cuando se cargue el modelo entrenado con Letterboxd.</p>` : ''}
+    </div>
+    <div class="barra-progreso">
+      <div class="cinta" aria-hidden="true">${'<i></i>'.repeat(CONFIG.minCalif)}</div>
+      <span class="cuenta" aria-live="polite"></span>
+      <div class="acciones">
+        <button class="btn sec" id="otros">Mostrar otros</button>
+        <button class="btn" id="ver">Ver mi programa</button>
+      </div>
+    </div>
+    <div class="buscador">
+      <label class="muted" for="buscar" style="display:block;font-size:.9rem;margin-bottom:6px">¿No aparece? Búscalo</label>
+      <input id="buscar" type="search" autocomplete="off" placeholder="Título${dom === 'books' ? ' o autor' : ''}">
+      <div class="sugerencias" id="sug" hidden></div>
+    </div>
+    <div class="rejilla" id="rej"></div>
+  </section>`;
+
+  const rej = $('#rej');
+  const yaCalif = () => Object.keys(estado.calif[dom]).filter(id => D.idx.has(id));
+  const listaFichas = () => {
+    const extra = yaCalif().map(id => D.idx.get(id)).filter(j => !estado.semillas[dom].includes(j));
+    return [...extra, ...estado.semillas[dom]];
+  };
+  function fichaHTML(j) {
+    const id = D.id[j], v = estado.calif[dom][id];
+    return `<article class="ficha ${v ? 'calificada' : ''}" data-j="${j}">
+      ${portada(D, j)}
+      <h3>${esc(D.t[j])}</h3>
+      <p class="meta">${esc([D.s[j], D.y[j] || ''].filter(Boolean).join(' · '))}</p>
+      <div class="fila">${estrellasHTML(D, v, { editable: true, id, titulo: D.t[j] })}
+        <button class="saltar" data-saltar="${esc(id)}">${cfg.noVisto}</button></div>
+    </article>`;
+  }
+  function pintar() {
+    rej.innerHTML = listaFichas().map(fichaHTML).join('');
+    activarEstrellas(rej, D, dom, id => { const f = rej.querySelector(`[data-j="${D.idx.get(id)}"]`); f && f.classList.toggle('calificada', !!estado.calif[dom][id]); progreso(); });
+  }
+  function progreso() {
+    const n = yaCalif().length;
+    document.querySelectorAll('.cinta i').forEach((i, k) => i.classList.toggle('on', k < n));
+    $('.cuenta').textContent = n >= CONFIG.minCalif ? `${n} calificadas · listo` : `${n} de ${CONFIG.minCalif}`;
+    $('#ver').disabled = n < CONFIG.minCalif;
+  }
+  rej.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-saltar]'); if (!b) return;
+    const id = b.dataset.saltar, j = D.idx.get(id);
+    estado.vistos[dom].add(id); delete estado.calif[dom][id]; guardarLocal(dom);
+    const excl = new Set([...Object.keys(estado.calif[dom]), ...estado.vistos[dom], ...estado.semillas[dom].map(x => D.id[x])]);
+    const nueva = semillas(D, excl, 1)[0];
+    estado.semillas[dom] = estado.semillas[dom].map(x => (x === j ? nueva : x)).filter(x => x !== undefined);
+    pintar(); progreso();
+  });
+  $('#otros').onclick = () => {
+    const excl = new Set([...Object.keys(estado.calif[dom]), ...estado.vistos[dom], ...estado.semillas[dom].map(x => D.id[x])]);
+    estado.semillas[dom] = semillas(D, excl, CONFIG.semillasVisibles); pintar(); progreso();
+    window.scrollTo({ top: $('.cabecera').offsetTop - 70, behavior: 'smooth' });
+  };
+  $('#ver').onclick = () => ir(cfg.slug + '-programa');
+
+  const inp = $('#buscar'), sug = $('#sug');
+  inp.addEventListener('input', () => {
+    const q = norm(inp.value.trim());
+    if (q.length < 2) { sug.hidden = true; return; }
+    const hits = [];
+    for (let j = 0; j < D.N && hits.length < 200; j++) if (D.busq[j].includes(q)) hits.push(j);
+    hits.sort((a, b) => D.n[b] - D.n[a]);
+    sug.innerHTML = hits.slice(0, 7).map(j => `<button data-j="${j}">${portada(D, j)}<span>${esc(D.t[j])}<small>${esc([D.s[j], D.y[j] || ''].filter(Boolean).join(' · '))}</small></span></button>`).join('')
+      || `<p style="padding:12px 14px" class="muted">No está en el catálogo. Prueba con el título original en inglés.</p>`;
+    sug.hidden = false;
+  });
+  sug.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-j]'); if (!b) return;
+    const j = +b.dataset.j; if (!estado.semillas[dom].includes(j)) estado.semillas[dom].unshift(j);
+    inp.value = ''; sug.hidden = true; pintar(); progreso();
+    rej.querySelector(`[data-j="${j}"] .estrellas`)?.focus();
+  });
+
+  pintar(); progreso();
+}
+
+async function vistaPrograma(dom) {
+  const cfg = DOMS[dom]; marcarNav(cfg.slug);
+  const D = await cargar(dom);
+  const calif = Object.fromEntries(Object.entries(estado.calif[dom]).filter(([id]) => D.idx.has(id)));
+  if (Object.keys(calif).length < CONFIG.minCalif) return ir(cfg.slug);
+  const recs = recomendar(D, calif, estado.vistos[dom], 60);
+  const generos = [...new Set(recs.flatMap(r => D.g[r.j]))].map(g => D.genres[g]).sort();
+  const fmtP = p => aEstrellas(D, p).toFixed(1);
+
+  function render() {
+    const lista = estado.filtro ? recs.filter(r => D.g[r.j].some(g => D.genres[g] === estado.filtro)) : recs;
+    const [top, ...resto] = lista;
+    app.innerHTML = `
+    <section class="etapa">
+      <div class="cabecera">
+        <h2>Tu programa de esta noche</h2>
+        <p>Armado con tus ${Object.keys(calif).length} calificaciones. Si ya ${dom === 'movies' ? 'viste' : 'leíste'} alguno, califícalo ahí mismo y el programa se ajusta.</p>
+      </div>
+      ${top ? `
+      <article class="estelar">
+        ${portada(D, top.j)}
+        <div>
+          <p class="rotulo">Función estelar</p>
+          <h3>${esc(D.t[top.j])}</h3>
+          <p class="meta">${esc([D.s[top.j], D.y[top.j] || ''].filter(Boolean).join(' · '))}</p>
+          <div class="prediccion">${estrellasHTML(D, top.p)}<strong>${fmtP(top.p)}</strong><span class="muted">calificación que esperamos que le des</span></div>
+          ${top.porque != null ? `<p class="porque">Porque calificaste alto <em>${esc(D.t[top.porque])}</em>.</p>` : ''}
+          <div class="chips" style="margin-top:14px">${D.g[top.j].map(g => `<span class="chip tag">${esc(D.genres[g])}</span>`).join('')}</div>
+        </div>
+      </article>` : `<div class="vacio"><strong>No hay títulos de ese género en tu programa.</strong>Quita el filtro para ver todas tus recomendaciones.</div>`}
+      <div class="chips" role="group" aria-label="Filtrar por género">
+        <button class="chip" aria-pressed="${!estado.filtro}" data-g="">Todo</button>
+        ${generos.map(g => `<button class="chip" aria-pressed="${estado.filtro === g}" data-g="${esc(g)}">${esc(g)}</button>`).join('')}
+      </div>
+      <div class="rejilla">
+        ${resto.slice(0, 24).map(r => `
+          <article class="ficha" data-j="${r.j}">
+            ${portada(D, r.j)}
+            <h3>${esc(D.t[r.j])}</h3>
+            <p class="meta">${esc([D.s[r.j], D.y[r.j] || ''].filter(Boolean).join(' · '))}</p>
+            <div class="pred-mini">${estrellasHTML(D, r.p, { mini: true })}<span>${fmtP(r.p)}</span></div>
+            ${r.porque != null ? `<p class="meta">Porque te gustó <em>${esc(D.t[r.porque])}</em></p>` : ''}
+            <details class="ya-vi"><summary class="saltar">${cfg.yaVi}</summary>
+              <div style="margin-top:6px">${estrellasHTML(D, estado.calif[dom][D.id[r.j]], { editable: true, id: D.id[r.j], titulo: D.t[r.j] })}</div>
+            </details>
+          </article>`).join('')}
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn sec" id="mas">Calificar más ${cfg.nombre.toLowerCase()}</button>
+        <button class="btn sec" id="otro">Probar con ${dom === 'movies' ? 'libros' : 'películas'}</button>
+      </div>
+    </section>`;
+    app.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { estado.filtro = b.dataset.g || null; render(); });
+    $('#mas').onclick = () => ir(cfg.slug);
+    $('#otro').onclick = () => ir(dom === 'movies' ? 'libros' : 'peliculas');
+    activarEstrellas(app, D, dom, () => { clearTimeout(render.t); render.t = setTimeout(() => { toast('Programa actualizado'); vistaPrograma(dom); }, 900); });
+  }
+  render();
+  window.scrollTo({ top: 0 });
+}
+
+async function vistaBiblioteca() {
+  marcarNav('biblioteca');
+  const mias = ['movies', 'books'].map(d => [d, Object.keys(estado.calif[d]).length]);
+  app.innerHTML = `
+  <section class="etapa">
+    <div class="cabecera">
+      <h2>La biblioteca</h2>
+      <p>Todo lo que la gente califica en Off-script queda aquí. Estas calificaciones se suman a las de Goodreads y Letterboxd cuando se vuelve a entrenar el modelo.</p>
+    </div>
+    <div class="cifras" id="cifras">
+      <div class="cifra"><strong>${mias[0][1]}</strong><span>películas que has calificado</span></div>
+      <div class="cifra"><strong>${mias[1][1]}</strong><span>libros que has calificado</span></div>
+    </div>
+    <h3>Lo último que se calificó</h3>
+    <div id="feed"><p class="muted">Cargando…</p></div>
+  </section>`;
+  const r = await biblio.recientes();
+  const feed = $('#feed');
+  if (!r) {
+    feed.innerHTML = CONFIG.supabaseUrl
+      ? `<div class="vacio"><strong>No se pudo conectar con la biblioteca compartida.</strong>Tus calificaciones están a salvo en este navegador. Detalle técnico: <code>${esc(biblio.error || 'sin respuesta')}</code></div>`
+      : `<div class="vacio"><strong>La biblioteca compartida todavía no está conectada.</strong>Tus calificaciones se guardan en este navegador. Cuando se conecte la base de datos, aquí aparecerá lo que califica toda la gente que visita Off-script.</div>`;
+    return;
+  }
+  $('#cifras').insertAdjacentHTML('afterbegin', `<div class="cifra"><strong>${r.total.toLocaleString('es-MX')}</strong><span>calificaciones en la biblioteca</span></div><div class="cifra"><strong>${r.personas.toLocaleString('es-MX')}</strong><span>personas han participado</span></div>`);
+  if (!r.filas.length) { feed.innerHTML = `<div class="vacio"><strong>Aún no hay calificaciones.</strong>Califica unas películas o libros y serás la primera entrada.</div>`; return; }
+  const Ds = { movies: await cargar('movies'), books: await cargar('books') };
+  feed.innerHTML = `<ul class="registro">${r.filas.map(f => {
+    const D = Ds[f.domain], j = D.idx.get(f.item_id);
+    const hace = Math.max(1, Math.round((Date.now() - new Date(f.created_at)) / 60000));
+    const t = hace < 60 ? `hace ${hace} min` : hace < 1440 ? `hace ${Math.round(hace / 60)} h` : `hace ${Math.round(hace / 1440)} d`;
+    return `<li>${j !== undefined ? portada(D, j) : '<span></span>'}<div><strong>${esc(f.title || f.item_id)}</strong><br><small>${DOMS[f.domain].uno} · ${t}</small></div>${estrellasHTML(D, f.rating, { mini: true })}</li>`;
+  }).join('')}</ul>`;
+}
+
+function vistaComo() {
+  marcarNav('como');
+  app.innerHTML = `
+  <section class="etapa">
+    <div class="cabecera">
+      <h2>Cómo usar Off-script</h2>
+      <p>No necesitas cuenta. Entras, calificas lo que ya conoces y recibes tu programa.</p>
+    </div>
+    <ol class="pasos cuatro">
+      <li class="paso"><h3>Elige qué buscas</h3><p>Desde el inicio entra a <b>Películas</b> o a <b>Libros</b>. Cada uno tiene su propio catálogo y su propio modelo.</p></li>
+      <li class="paso"><h3>Califica al menos 10</h3><p>Toca las estrellas de los títulos que ya viste o leíste. En películas puedes dar medias estrellas. Si no conoces uno, toca <i>No lo he visto</i> y aparece otro. Con el buscador agregas los que tú quieras.</p></li>
+      <li class="paso"><h3>Abre tu programa</h3><p>Cuando la cinta de arriba se llena, toca <b>Ver mi programa</b>: arriba va la función estelar y abajo el resto, con la calificación que esperamos que le des y el título tuyo que más se le parece.</p></li>
+      <li class="paso"><h3>Afínalo</h3><p>Filtra por género. Si ya viste alguna recomendación, califícala ahí mismo con <i>Ya la vi</i> y el programa se recalcula. Entre más califiques, más fino sale.</p></li>
+    </ol>
+    <p class="aviso">Tus calificaciones se guardan en este navegador y, de forma anónima, en la biblioteca compartida, donde ayudan a entrenar la siguiente versión del modelo.</p>
+  </section>
+
+  <section class="etapa algoritmo">
+    <div class="cabecera">
+      <h2>Cómo funciona el algoritmo</h2>
+      <p>Es un análisis de componentes principales (PCA) aplicado a una matriz de calificaciones con huecos, una técnica que se conoce como <i>matrix completion</i>.</p>
+    </div>
+    <ol class="pasos">
+      <li class="paso"><h3>La matriz</h3><p>Cada fila es una persona y cada columna un título. En libros son 53,424 lectores × 10,000 libros y solo el 1.1 % de las celdas tiene calificación. En películas, 7,376 cinéfilos × 68,128 películas con el 2.1 % lleno.</p></li>
+      <li class="paso"><h3>Doble centrado</h3><p>A cada calificación se le resta el promedio de quien la dio (hay críticos laxos y estrictos) y el sesgo del título (hay títulos que casi a todos les gustan). Lo que queda son los gustos relativos.</p></li>
+      <li class="paso"><h3>Rellenar con PCA</h3><p>Los huecos empiezan en cero. Luego, una y otra vez: se calcula el PCA (SVD) de la matriz rellenada, se encogen sus valores singulares (SoftImpute) y los huecos se reemplazan por la reconstrucción. Al final quedan 200 componentes: ejes de gusto que nadie etiquetó a mano.</p></li>
+      <li class="paso"><h3>Ubicarte a ti</h3><p>Cada título tiene sus <i>cargas</i> en esos ejes. Con tus calificaciones se calcula tu propio vector de <i>scores</i> con una regresión regularizada, sin reentrenar nada.</p></li>
+      <li class="paso"><h3>Predecir</h3><p class="formula">calificación = tu promedio + sesgo del título + Σ tu score × carga del título</p><p>Con eso se estima cuánto le darías a cada título que no has calificado.</p></li>
+      <li class="paso"><h3>Ordenar</h3><p>El orden final suma cuatro cosas: la calificación predicha, qué tan cerca está cada título de lo que calificaste por encima de tu promedio en el espacio de componentes (similitud coseno), tu afinidad con sus géneros y un empujón leve hacia títulos conocidos. Se muestran máximo dos por autor.</p></li>
+      <li class="paso"><h3>Explicar</h3><p>El “porque calificaste alto…” es el título que te gustó más parecido al recomendado, combinando sus cargas y sus géneros.</p></li>
+    </ol>
+    <div class="cabecera">
+      <h3>Por qué SoftImpute</h3>
+      <p>Se probaron dos variantes con el 10 % de las calificaciones escondidas. El PCA iterativo con un número fijo de componentes se sobreajusta en cuanto pasa de unos cuantos; SoftImpute aprovecha muchos más porque apaga los componentes débiles.</p>
+    </div>
+    <div class="tabla"><table>
+      <thead><tr><th>Error promedio (RMSE, validación)</th><th>Libros · escala 1–5</th><th>Películas · escala 1–10</th></tr></thead>
+      <tbody>
+        <tr><td>Promedio del usuario + sesgo del título</td><td>0.858</td><td>1.549</td></tr>
+        <tr><td>PCA iterativo (mejor número de componentes)</td><td>0.837</td><td>1.377</td></tr>
+        <tr class="gana"><td>SoftImpute, 200 componentes</td><td>0.818</td><td>1.368</td></tr>
+      </tbody>
+    </table></div>
+  </section>`;
+}
+
+/* =================== Navegación =================== */
+const RUTAS = {
+  '': vistaInicio, peliculas: () => vistaCalificar('movies'), libros: () => vistaCalificar('books'),
+  'peliculas-programa': () => vistaPrograma('movies'), 'libros-programa': () => vistaPrograma('books'),
+  biblioteca: vistaBiblioteca, como: vistaComo,
+};
+function ir(ruta) {
+  estado.filtro = null;
+  try { history.replaceState(null, '', ruta ? '#' + ruta : location.pathname); } catch {}
+  (RUTAS[ruta] || vistaInicio)();
+  window.scrollTo({ top: 0 });
+}
+document.addEventListener('click', ev => {
+  if (!ev.target.closest('.buscador')) { const s = $('#sug'); if (s) s.hidden = true; }
+  const b = ev.target.closest('[data-ir]'); if (b) { ev.preventDefault(); ir(b.dataset.ir); }
+});
+$('#ir-inicio').onclick = () => ir('');
+try { new ResizeObserver(([e]) => document.documentElement.style.setProperty('--alto-top', e.target.offsetHeight + 'px')).observe($('.top')); } catch {}
+ir((location.hash || '').slice(1));
+</script>
+</body>
+</html>

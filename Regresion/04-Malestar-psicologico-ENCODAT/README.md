@@ -24,6 +24,13 @@ Este proyecto usa la Encuesta Nacional de Consumo de Drogas, Alcohol y Tabaco 20
 
 | Archivo | Contenido |
 |---|---|
-| [`reporte.ipynb`](reporte.ipynb) | Reporte completo con código, tablas y figuras |
-| [`reporte.html`](reporte.html) | El mismo reporte en HTML, sin código |
+| [`reporte4.ipynb`](reporte4.ipynb) | Reporte completo con código, tablas y figuras |
+| [`reporte4.html`](reporte4.html) | El mismo reporte en HTML, sin código |
+| [`04-Malestar-psicologico-ENCODAT.pdf`](04-Malestar-psicologico-ENCODAT.pdf) | El mismo reporte en PDF |
 | [ENCODAT 2025 (descarga oficial)](https://encuestas.insp.mx/repositorio/encuestas/ENCODAT2025/descargas.php) | Base de datos utilizada (cuestionario individual) |
+
+## Referencias
+
+- Comisión Nacional de Salud Mental y Adicciones. (s. f.). *Informe sobre la situación de la salud mental y el consumo de sustancias en México*. Gobierno de México. https://www.gob.mx/conasama/documentos/informe-sobre-la-situacion-de-la-salud-mental-y-el-consumo-de-sustancias-en-mexico
+- Instituto Nacional de Salud Pública. (2025). *Encuesta Nacional de Consumo de Drogas, Alcohol y Tabaco 2025 (ENCODAT)* [Conjunto de datos]. https://encuestas.insp.mx/repositorio/encuestas/ENCODAT2025/descargas.php
+- World Health Organization. (2024, 28 de junio). *Alcohol*. https://www.who.int/es/news-room/fact-sheets/detail/alcohol

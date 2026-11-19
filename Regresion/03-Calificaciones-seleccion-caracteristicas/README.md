@@ -24,6 +24,12 @@ Este proyecto se centra en preparar bien los datos antes de modelar. Se eliminan
 
 | Archivo | Contenido |
 |---|---|
-| [`reporte.ipynb`](reporte.ipynb) | Reporte completo con código, tablas y figuras |
-| [`reporte.html`](reporte.html) | El mismo reporte en HTML, sin código |
+| [`reporte3.ipynb`](reporte3.ipynb) | Reporte completo con código, tablas y figuras |
+| [`reporte3.html`](reporte3.html) | El mismo reporte en HTML, sin código |
+| [`03-Calificaciones-seleccion-caracteristicas.pdf`](03-Calificaciones-seleccion-caracteristicas.pdf) | El mismo reporte en PDF |
 | [`calificaciones.csv`](calificaciones.csv) | Base de datos utilizada |
+
+## Referencias
+
+- Cortez, P., & Silva, A. M. G. (2008). Using data mining to predict secondary school student performance. En A. Brito & J. Teixeira (Eds.), *Proceedings of 5th Future Business Technology Conference (FUBUTEC 2008)* (pp. 5–12). EUROSIS-ETI.
+- UCI Machine Learning Repository. (2008). *Student performance* [Conjunto de datos]. https://archive.ics.uci.edu/dataset/320/student+performance

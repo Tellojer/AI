@@ -24,6 +24,12 @@ Este proyecto es el punto de partida de un estudio estadístico sobre obesidad. 
 
 | Archivo | Contenido |
 |---|---|
-| [`reporte.ipynb`](reporte.ipynb) | Reporte completo con código, tablas y figuras |
-| [`reporte.html`](reporte.html) | El mismo reporte en HTML, sin código |
+| [`reporte1.ipynb`](reporte1.ipynb) | Reporte completo con código, tablas y figuras |
+| [`reporte1.html`](reporte1.html) | El mismo reporte en HTML, sin código |
+| [`01-Obesidad-analisis-exploratorio.pdf`](01-Obesidad-analisis-exploratorio.pdf) | El mismo reporte en PDF |
 | [`obesidad.csv`](obesidad.csv) | Base de datos utilizada |
+
+## Referencias
+
+- Palechor, F. M., & De la Hoz Manotas, A. (2019). Dataset for estimation of obesity levels based on eating habits and physical condition in individuals from Colombia, Peru and Mexico. *Data in Brief, 25*, 104344. https://doi.org/10.1016/j.dib.2019.104344
+- UCI Machine Learning Repository. (2019). *Estimation of obesity levels based on eating habits and physical condition* [Conjunto de datos]. https://archive.ics.uci.edu/dataset/544/estimation+of+obesity+levels+based+on+eating+habits+and+physical+condition
