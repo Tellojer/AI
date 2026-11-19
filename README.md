@@ -28,16 +28,16 @@ Modelos supervisados que asignan a cada caso una categoría o una probabilidad d
 | 3 | [Mortalidad hospitalaria con ensambles y redes neuronales](Clasificacion/03-Mortalidad-ensambles/) | Anticipar desde el tercer día de hospitalización qué pacientes no sobrevivirán | Random Forest, Boosting, SVM, red neuronal |
 | 4 | [Pronóstico de mortalidad y tablero interactivo](Clasificacion/04-Pronostico-mortalidad/) | Elegir el mejor modelo para estimar si un paciente morirá y cuándo | Seis modelos comparados (regresión logística, LDA, ensambles, SVM, red neuronal) y un tablero web |
 
-### [Aprendizaje no supervisado](No%20supervised%20Learning/)
+### [Aprendizaje no supervisado](Unsupervised%20Learning/)
 
 Modelos que buscan estructura en los datos sin una variable de respuesta: reducción de dimensionalidad y agrupamiento. Incluye además un proyecto de aprendizaje por refuerzo.
 
 | # | Proyecto | Problema | Modelos |
 |---|---|---|---|
-| 1 | [Off-script: recomendación de películas y libros](No%20supervised%20Learning/01-Recomendacion-PCA/) | Recomendar títulos a partir de 10 calificaciones y de millones de calificaciones de otros usuarios | PCA para *matrix completion* (SoftImpute) y aplicación web |
-| 2 | [Tutorial: K-Means y hierarchical clustering](No%20supervised%20Learning/02-Tutorial-KMeans-hierarchical/) | Explicar cómo agrupan ambos métodos y de qué decisiones depende el resultado | K-Means, PCA, hierarchical clustering |
-| 3 | [Agente pIAnista](No%20supervised%20Learning/03-Agente-pianista-Q-learning/) | Enseñar a un agente a tocar *Für Elise* por prueba y error | Q-learning tabular |
-| 4 | [Cáncer de mama en TCGA-BRCA](No%20supervised%20Learning/04-Cancer-mama-TCGA-BRCA/) | Buscar grupos de tumores en la expresión génica y evaluar su significado biológico y clínico | PCA, K-means, hierarchical clustering, modelos de Cox y póster interactivo |
+| 1 | [Off-script: recomendación de películas y libros](Unsupervised%20Learning/01-Recomendacion-PCA/) | Recomendar títulos a partir de 10 calificaciones y de millones de calificaciones de otros usuarios | PCA para *matrix completion* (SoftImpute) y aplicación web |
+| 2 | [Tutorial: K-Means y hierarchical clustering](Unsupervised%20Learning/02-Tutorial-KMeans-hierarchical/) | Explicar cómo agrupan ambos métodos y de qué decisiones depende el resultado | K-Means, PCA, hierarchical clustering |
+| 3 | [Agente pIAnista](Unsupervised%20Learning/03-Agente-pianista-Q-learning/) | Enseñar a un agente a tocar *Für Elise* por prueba y error | Q-learning tabular |
+| 4 | [Cáncer de mama en TCGA-BRCA](Unsupervised%20Learning/04-Cancer-mama-TCGA-BRCA/) | Buscar grupos de tumores en la expresión génica y evaluar su significado biológico y clínico | PCA, K-means, hierarchical clustering, modelos de Cox y póster interactivo |
 
 ## Herramientas
 
