@@ -28,7 +28,8 @@ En este proyecto se construye un ambiente propio, un teclado con una mano de 5 d
 | [`reporte3.ipynb`](reporte3.ipynb) | Reporte completo con código, tablas y figuras |
 | [`reporte3.html`](reporte3.html) | El mismo reporte en HTML, sin código |
 | [`03-Agente-pianista-Q-learning.pdf`](03-Agente-pianista-Q-learning.pdf) | El mismo reporte en PDF |
-| [`03-Agente-pianista-Q-learning.mp4`](03-Agente-pianista-Q-learning.mp4) | Video del historial de aprendizaje del agente, con audio |
+| [`03-Agente-pianista-Q-learning.mp4`](03-Agente-pianista-Q-learning.mp4) | Video de presentación del proyecto |
+| [`historial-aprendizaje.mp4`](historial-aprendizaje.mp4) | Historial del aprendizaje del agente en video, con audio, generado por el reporte |
 
 ## Referencias
 

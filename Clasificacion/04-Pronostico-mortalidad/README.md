@@ -1,8 +1,8 @@
-# Pronóstico de mortalidad: comparación de seis modelos de clasificación
+# Pronóstico de mortalidad: seis modelos de clasificación y tablero interactivo
 
 ¿Qué modelo es el más adecuado para estimar, al tercer día de hospitalización, si un paciente gravemente enfermo fallecerá y en qué ventana de tiempo?
 
-En este proyecto se comparan seis modelos de clasificación para predecir la mortalidad intrahospitalaria de pacientes del estudio SUPPORT: dos clasificadores lineales (regresión logística y análisis discriminante lineal), dos ensambles (Random Forest y Boosting), una máquina de soporte vectorial y una red neuronal. Los modelos se comparan en validación cruzada repetida por su desempeño, su estabilidad entre particiones, su costo computacional y su interpretabilidad, con un estadístico F y pruebas t pareadas corregidas. El modelo seleccionado se evalúa en un conjunto de prueba independiente con intervalos de confianza por *bootstrap*. Después se predice la ventana temporal del fallecimiento (30, 180 y 365 días) con modelos multiclase, y a 6 meses el modelo se compara con el modelo pronóstico SUPPORT y con la estimación del médico tratante.
+En este proyecto se comparan seis modelos de clasificación para predecir la mortalidad intrahospitalaria de pacientes del estudio SUPPORT: dos clasificadores lineales (regresión logística y análisis discriminante lineal), dos ensambles (Random Forest y Boosting), una máquina de soporte vectorial y una red neuronal. Los modelos se comparan en validación cruzada repetida por su desempeño, su estabilidad entre particiones, su costo computacional y su interpretabilidad, con un estadístico F y pruebas t pareadas corregidas. El modelo seleccionado se evalúa en un conjunto de prueba independiente con intervalos de confianza por *bootstrap*. Después se predice la ventana temporal del fallecimiento (30, 180 y 365 días) con modelos multiclase, y a 6 meses el modelo se compara con el modelo pronóstico SUPPORT y con la estimación del médico tratante. Por último, los dos modelos finales se integran en el tablero interactivo *Pronóstico al Día 3*, que, a partir del estado clínico de un paciente al tercer día de hospitalización, estima su riesgo de morir durante la hospitalización, la fecha probable de fallecimiento y las variables que más influyen en ese riesgo.
 
 **Resultado principal:** la regresión logística resulta el modelo más adecuado. Obtiene el mayor AUC promedio, estadísticamente equivalente al de Random Forest, Boosting y LDA y superior al de la SVM y la red neuronal, con la menor variabilidad, el menor sobreajuste y el menor costo, y es el único cuyas predicciones se explican en términos clínicos mediante razones de momios. En pacientes nuevos alcanza un AUC de 0.872 y detecta a casi 8 de cada 10 fallecimientos. Los modelos distinguen bien la muerte en el primer mes y la supervivencia mayor a un año, pero no las ventanas intermedias. A 6 meses, el modelo discrimina tan bien como el médico tratante y mejor que el modelo SUPPORT.
 
@@ -27,6 +27,7 @@ En este proyecto se comparan seis modelos de clasificación para predecir la mor
 | [`reporte4.ipynb`](reporte4.ipynb) | Reporte completo con código, tablas y figuras |
 | [`reporte4.html`](reporte4.html) | El mismo reporte en HTML, sin código |
 | [`04-Pronostico-mortalidad.pdf`](04-Pronostico-mortalidad.pdf) | El mismo reporte en PDF |
+| [`tablero.html`](tablero.html) | Tablero interactivo *Pronóstico al Día 3*; se abre en el navegador una vez descargado |
 | [`support2.csv`](support2.csv) | Base de datos utilizada |
 
 ## Referencias
