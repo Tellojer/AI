@@ -27,6 +27,7 @@ En este proyecto se analiza la expresión génica por RNA-seq de 1,083 tumores p
 | [`reporte4.ipynb`](reporte4.ipynb) | Reporte completo con código, tablas y figuras |
 | [`reporte4.html`](reporte4.html) | El mismo reporte en HTML, sin código |
 | [`04-Cancer-mama-TCGA-BRCA.pdf`](04-Cancer-mama-TCGA-BRCA.pdf) | El mismo reporte en PDF |
+| [`poster/`](poster/) | Póster de investigación interactivo con los resultados principales (`poster/index.html`) |
 | [GDC TCGA-BRCA en UCSC Xena](https://xenabrowser.net/datapages/?cohort=GDC%20TCGA%20Breast%20Cancer%20(BRCA)) | Expresión génica (STAR-TPM), fenotipo, supervivencia y mapa de genes |
 | [GENCODE v36](https://www.gencodegenes.org/human/release_36.html) | Anotación con el tipo de cada gen |
 | [Matriz clínica de TCGA-BRCA (UCSC Xena)](https://xenabrowser.net/datapages/?cohort=TCGA%20Breast%20Cancer%20(BRCA)) | Receptores hormonales, HER2, PAM50 y estado menopáusico |

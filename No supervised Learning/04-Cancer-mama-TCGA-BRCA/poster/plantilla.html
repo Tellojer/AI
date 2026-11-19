@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>¿Subtipos o tejido normal? Análisis no supervisado de TCGA-BRCA</title>
+<meta name="description" content="Póster interactivo: PCA, K-means y hierarchical clustering de 1,083 tumores de mama de TCGA. La división luminal C2/C3 resulta ser un gradiente de tejido mamario normal.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@600;700;800&family=Mulish:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<style>
+:root {
+  --banda: #C2185B;
+  --banda-osc: #8E1043;
+  --rosa-ola: #F28DB2;
+  --rosa-ola-2: #F9BDD3;
+  --panel: #FCEBF2;
+  --superficie: #FFF8FB;
+  --pagina: #FFFDFE;
+  --tinta: #3A1426;
+  --tinta-2: #6B3550;
+  --linea: #EBC3D4;
+  --c1: #C2185B; --c2: #2F6FD0; --c3: #B8640F; --otro: #8C8A84; --sin: #D9CDD3;
+  --display: "League Spartan", "Mulish", sans-serif;
+  --texto: "Mulish", "Segoe UI", sans-serif;
+  --radio: 22px;
+  --sombra: 0 6px 18px -10px rgba(122, 15, 61, 0.35);
+  --sale: cubic-bezier(0.16, 1, 0.3, 1);
+}
+* { box-sizing: border-box; }
+html { scrollbar-color: var(--rosa-ola) var(--panel); }
+body { margin: 0; background: var(--pagina); color: var(--tinta); font: 400 15px/1.55 var(--texto); -webkit-font-smoothing: antialiased; }
+::selection { background: #F7C6DA; color: var(--tinta); }
+:focus-visible { outline: 2.5px solid var(--banda); outline-offset: 3px; border-radius: 6px; }
+a { color: var(--banda-osc); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+strong { font-weight: 700; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- Encabezado ---------- */
+header.banda { position: relative; background: var(--banda); color: #fff; text-align: center; padding: 44px 24px 92px; overflow: hidden; }
+.ola { position: absolute; top: 0; width: 340px; height: 190px; pointer-events: none; }
+.ola.izq { left: -40px; } .ola.der { right: -40px; transform: scaleX(-1); }
+h1 { font: 800 clamp(30px, 4.6vw, 64px)/1.02 var(--display); letter-spacing: -0.01em; margin: 0 auto; max-width: 20ch; text-transform: uppercase; text-wrap: balance; }
+.lema { font: 400 clamp(17px, 1.8vw, 24px)/1.3 var(--texto); margin: 14px auto 0; max-width: 60ch; color: #FFE6F0; text-wrap: balance; }
+.autoria { position: relative; z-index: 2; max-width: 1240px; margin: -62px auto 0; padding: 0 20px; }
+.autoria-barra { display: grid; grid-template-columns: 1fr 112px 1fr; align-items: center; background: var(--panel); border-radius: var(--radio); min-height: 86px; box-shadow: var(--sombra); }
+.autoria-barra div { text-align: center; padding: 12px 16px; }
+.autoria-barra h2 { font: 700 22px/1.1 var(--display); margin: 0 0 4px; }
+.autoria-barra p { margin: 0; color: var(--tinta-2); }
+.liston { width: 112px; height: 112px; border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: var(--sombra); margin: -14px 0; }
+.liston svg { width: 54px; height: 82px; overflow: visible; }
+.liston path { fill: none; stroke-width: 10; stroke-linecap: butt; stroke-linejoin: round; }
+
+/* ---------- Rejilla ---------- */
+main { max-width: 1520px; margin: 28px auto 0; padding: 0 20px 28px; display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr); grid-template-areas:
+  "intro metodo resultados"
+  "objetivo figura resultados"
+  "datos figura supervivencia"
+  "descubre descubre conclusion"
+  "netanely netanely literatura"; }
+.panel { background: var(--panel); border-radius: var(--radio); padding: 24px 26px 26px; min-width: 0; }
+.panel h2 { font: 700 27px/1.1 var(--display); margin: 0 0 12px; text-align: center; letter-spacing: -0.005em; text-wrap: balance; }
+.panel h3 { font: 700 18px/1.2 var(--display); margin: 18px 0 6px; }
+.panel p { margin: 0 0 10px; max-width: 68ch; }
+.panel p:last-child { margin-bottom: 0; }
+.nota { font-size: 13px; color: var(--tinta-2); }
+#intro { grid-area: intro; } #objetivo { grid-area: objetivo; } #datos { grid-area: datos; }
+#metodo { grid-area: metodo; } #figura { grid-area: figura; } #resultados { grid-area: resultados; }
+#supervivencia { grid-area: supervivencia; } #descubre { grid-area: descubre; } #conclusion { grid-area: conclusion; }
+#netanely { grid-area: netanely; } #literatura { grid-area: literatura; }
+.contraste { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.contraste li { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 9px 0; border-top: 1px solid var(--linea); font-size: 14px; }
+.contraste li span { grid-column: 1 / -1; font-size: 12.5px; color: var(--tinta-2); }
+.estado { font: 700 12px/1 var(--texto); padding: 5px 9px; border-radius: 999px; white-space: nowrap; align-self: start; }
+.estado.si { background: #F3D3E0; color: var(--banda-osc); }
+.estado.nuevo { background: var(--banda); color: #fff; }
+.lectura { font-size: 14px; margin: 14px 0 0 !important; padding-top: 12px; border-top: 1px solid var(--linea); }
+
+/* Preguntas */
+.preguntas { margin: 0; padding: 0; list-style: none; counter-reset: q; display: grid; gap: 8px; }
+.preguntas li { counter-increment: q; display: grid; grid-template-columns: 28px 1fr; gap: 8px; align-items: start; }
+.preguntas li::before { content: counter(q); font: 700 15px/26px var(--display); width: 26px; height: 26px; border-radius: 50%; background: var(--banda); color: #fff; text-align: center; }
+
+/* Datos */
+.cifras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; margin: 4px 0 12px; }
+.cifras div { border-top: 1.5px solid var(--linea); padding-top: 8px; }
+.cifras b { display: block; font: 700 30px/1 var(--display); color: var(--banda-osc); }
+.cifras span { font-size: 13px; color: var(--tinta-2); }
+
+/* Metodología */
+.pasos { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.pasos li { display: grid; grid-template-columns: 78px 1fr; gap: 14px; align-items: center; }
+.paso-n { display: flex; align-items: center; gap: 2px; font: 800 34px/1 var(--display); color: var(--banda); }
+.paso-n svg { width: 34px; height: 30px; }
+.pasos b { display: block; font: 700 16px/1.25 var(--display); }
+.pasos span { font-size: 14px; }
+
+/* Controles segmentados */
+.segmentos { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--superficie); border: 1px solid var(--linea); border-radius: 999px; }
+.segmentos button { font: 600 13px/1 var(--texto); color: var(--tinta-2); background: transparent; border: 0; border-radius: 999px; padding: 9px 14px; cursor: pointer; transition: background-color 180ms var(--sale), color 180ms var(--sale), transform 120ms var(--sale); }
+.segmentos button:hover { color: var(--tinta); background: #FBE0EB; }
+.segmentos button:active { transform: scale(0.97); }
+.segmentos button[aria-pressed="true"] { background: var(--banda); color: #fff; }
+.barra-control { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 12px; }
+
+/* Figura PCA */
+.lienzo { position: relative; background: var(--superficie); border-radius: 16px; border: 1px solid var(--linea); }
+.lienzo canvas { display: block; width: 100%; height: auto; border-radius: 16px; cursor: crosshair; }
+.leyenda { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; margin: 12px 0 4px; font-size: 13px; }
+.leyenda button { display: inline-flex; align-items: center; gap: 7px; font: 600 13px/1 var(--texto); color: var(--tinta); background: none; border: 0; padding: 6px 8px; border-radius: 8px; cursor: pointer; transition: opacity 180ms var(--sale), background-color 180ms var(--sale); }
+.leyenda button:hover { background: #FBE0EB; }
+.leyenda button[aria-pressed="false"] { opacity: 0.38; }
+.leyenda i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 2px var(--superficie); }
+.gradiente { display: flex; align-items: center; gap: 8px; justify-content: center; margin: 12px 0 4px; font-size: 13px; color: var(--tinta-2); }
+.gradiente span.rampa { width: 180px; height: 10px; border-radius: 5px; }
+.tip { position: absolute; pointer-events: none; z-index: 5; background: var(--tinta); color: #fff; font-size: 12.5px; line-height: 1.45; padding: 8px 10px; border-radius: 10px; box-shadow: 0 8px 22px -10px rgba(58, 20, 38, 0.6); opacity: 0; transform: translateY(4px); transition: opacity 140ms var(--sale), transform 140ms var(--sale); white-space: nowrap; }
+.tip.visible { opacity: 1; transform: none; }
+.tip b { font-weight: 700; }
+
+/* Resultados */
+.pestanas { display: flex; justify-content: center; margin-bottom: 14px; }
+.perfil { display: grid; gap: 0; margin: 0; }
+.perfil div { display: grid; grid-template-columns: 116px 1fr; gap: 10px; padding: 8px 0; border-top: 1px solid var(--linea); font-size: 14px; }
+.perfil dt { font-weight: 700; color: var(--tinta-2); }
+.perfil dd { margin: 0; }
+.personas-titulo { font: 700 18px/1.2 var(--display); text-align: center; margin: 16px 0 8px; }
+.personas { display: flex; justify-content: center; gap: 4px; }
+.personas svg { width: 26px; height: 52px; }
+.cambia { transition: opacity 220ms var(--sale), transform 220ms var(--sale); }
+.cambia.saliendo { opacity: 0; transform: translateY(4px); }
+
+/* Gráficas SVG */
+svg.grafica { width: 100%; height: auto; display: block; overflow: visible; }
+svg.grafica text { font: 14px var(--texto); fill: var(--tinta-2); }
+svg.grafica text.fuerte { fill: var(--tinta); font-weight: 700; }
+svg.grafica .eje { stroke: #D9AFC1; stroke-width: 1; }
+svg.grafica .rejilla { stroke: #EED3DE; stroke-width: 1; stroke-dasharray: 2 4; }
+svg.grafica .hit { fill: transparent; cursor: default; }
+svg.grafica rect.barra { transition: width 420ms var(--sale), opacity 200ms var(--sale); }
+
+/* Descubrimiento */
+.dos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 26px; align-items: start; }
+.destaca { font: 700 19px/1.3 var(--display); color: var(--banda-osc); text-align: center; margin: 6px 0 16px; text-wrap: balance; max-width: none !important; }
+
+/* Netanely */
+.tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.tres div { background: var(--superficie); border-radius: 16px; padding: 14px 16px; }
+.tres b { display: block; font: 700 28px/1 var(--display); color: var(--banda-osc); margin-bottom: 6px; }
+.tres p { font-size: 14px; }
+
+/* Conclusión */
+#conclusion p { font-size: 15.5px; }
+.lecciones { margin: 12px 0 0; padding-left: 20px; }
+.lecciones li { margin-bottom: 6px; }
+
+/* Pie */
+footer { max-width: 1520px; margin: 0 auto 40px; padding: 0 20px; }
+.pie { background: var(--panel); border-radius: var(--radio); padding: 22px 28px; }
+.pie h2 { font: 700 26px/1.1 var(--display); text-align: center; margin: 0 0 14px; }
+.pie-cols { display: grid; grid-template-columns: 1.6fr 1fr; gap: 28px; font-size: 12.5px; color: var(--tinta-2); }
+.pie-cols h3 { font: 700 15px/1.2 var(--display); color: var(--tinta); margin: 0 0 6px; }
+.pie-cols ul { margin: 0; padding-left: 16px; columns: 2; column-gap: 26px; }
+.pie-cols li { margin-bottom: 4px; break-inside: avoid; }
+.pie-cols p { margin: 0 0 6px; }
+
+/* Adaptación */
+@media (max-width: 1180px) {
+  main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas:
+    "intro objetivo" "metodo metodo" "figura figura" "resultados supervivencia" "datos supervivencia"
+    "descubre descubre" "netanely netanely" "conclusion literatura"; }
+}
+@media (max-width: 760px) {
+  main { grid-template-columns: minmax(0, 1fr); grid-template-areas: "intro" "objetivo" "metodo" "figura" "resultados" "supervivencia" "datos" "descubre" "netanely" "conclusion" "literatura"; padding: 0 12px 20px; gap: 14px; }
+  header.banda { padding: 32px 18px 84px; }
+  .ola { width: 200px; height: 120px; }
+  .autoria-barra { grid-template-columns: 1fr; padding: 10px 0; }
+  .liston { margin: 4px auto; order: -1; }
+  .dos, .tres, .pie-cols { grid-template-columns: minmax(0, 1fr); }
+  .pie-cols ul { columns: 1; }
+  .panel { padding: 20px 18px; }
+  .pasos li { grid-template-columns: 64px 1fr; }
+  .paso-n { font-size: 28px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="banda">
+  <svg class="ola izq" viewBox="0 0 340 190" aria-hidden="true"><path d="M0 0h300c-18 36-58 40-92 48-44 10-56 46-96 64-40 18-80 6-112 34V0z" fill="var(--rosa-ola)" opacity=".55"/><path d="M0 0h190c-10 30-40 38-70 44-36 8-44 34-74 44C26 94 12 92 0 98z" fill="var(--rosa-ola-2)" opacity=".7"/></svg>
+  <svg class="ola der" viewBox="0 0 340 190" aria-hidden="true"><path d="M0 0h300c-18 36-58 40-92 48-44 10-56 46-96 64-40 18-80 6-112 34V0z" fill="var(--rosa-ola)" opacity=".55"/><path d="M0 0h190c-10 30-40 38-70 44-36 8-44 34-74 44C26 94 12 92 0 98z" fill="var(--rosa-ola-2)" opacity=".7"/></svg>
+  <h1>¿Subtipos de cáncer de mama o tejido normal en la muestra?</h1>
+  <p class="lema">Análisis no supervisado de la expresión génica de 1,083 tumores de TCGA-BRCA con PCA, K-means y hierarchical clustering</p>
+</header>
+
+<div class="autoria">
+  <div class="autoria-barra">
+    <div><h2>Autor</h2><p>Jorge Tello · 664317</p></div>
+    <div class="liston" role="img" aria-label="Listón rosa, símbolo de la lucha contra el cáncer de mama">
+      <svg viewBox="0 0 64 96" aria-hidden="true">
+        <path id="liston-atras" d="M32 9 C43 9 48 17 46 26 C44 35 38 43 31 52 L16 88" stroke="#8E1043"/>
+        <path id="liston-frente" d="M32 9 C21 9 16 17 18 26 C20 35 26 43 33 52 L48 88" stroke="#E0397A"/>
+      </svg>
+    </div>
+    <div><h2>Afiliación</h2><p>SC3314 Inteligencia Artificial · Universidad de Monterrey</p></div>
+  </div>
+</div>
+
+<main>
+  <section class="panel" id="intro" aria-labelledby="t-intro">
+    <h2 id="t-intro">Introducción</h2>
+    <p>El cáncer de mama es la neoplasia más diagnosticada en mujeres, con unos 2.3 millones de casos nuevos en 2022. No es una sola enfermedad: tumores con la misma histología responden distinto al tratamiento, y parte de esa heterogeneidad se refleja en la expresión génica, que define los subtipos intrínsecos (luminales, HER2-enriquecido y basal).</p>
+    <p>Por eso es un caso natural para el aprendizaje no supervisado. La pregunta no es predecir una etiqueta conocida, sino saber si los datos contienen, por sí mismos, grupos de pacientes con significado biológico y clínico.</p>
+  </section>
+
+  <section class="panel" id="objetivo" aria-labelledby="t-obj">
+    <h2 id="t-obj">Objetivo</h2>
+    <p>Identificar agrupaciones en la expresión génica de tumores de mama, usando solo expresión, y explorar después su relación con variables clínicas.</p>
+    <ol class="preguntas">
+      <li>¿Cuántas dimensiones describen la variabilidad de la expresión?</li>
+      <li>¿Existen grupos que dos métodos de clustering recuperen por igual?</li>
+      <li>¿Qué genes y programas biológicos los distinguen?</li>
+      <li>¿Se asocian con edad, histología, receptores o supervivencia?</li>
+      <li>¿Qué coincide con lo publicado y qué no está descrito?</li>
+    </ol>
+  </section>
+
+  <section class="panel" id="datos" aria-labelledby="t-datos">
+    <h2 id="t-datos">Datos</h2>
+    <div class="cifras num">
+      <div><b>1,226</b><span>muestras de RNA-seq de 1,095 pacientes</span></div>
+      <div><b>1,083</b><span>tumores primarios analizados, uno por paciente</span></div>
+      <div><b>5,000</b><span>genes de mayor varianza, de 60,660 variables</span></div>
+      <div><b>23</b><span>muestras excluidas por procesamiento distinto</span></div>
+    </div>
+    <p class="nota">Cohorte GDC TCGA-BRCA (UCSC Xena). Se corrigió la fracción mitocondrial, que variaba de 3 % a 71 % del TPM, re-escalando a genes codificantes nucleares.</p>
+  </section>
+
+  <section class="panel" id="metodo" aria-labelledby="t-metodo">
+    <h2 id="t-metodo">Metodología</h2>
+    <ol class="pasos">
+      <li><div class="paso-n" aria-hidden="true">01<svg viewBox="0 0 34 30"><path d="M4 3l12 12L4 27" fill="none" stroke="#C2185B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 3l12 12-12 12" fill="none" stroke="#F28DB2" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><b>Control de calidad</b><span>Detección de pares FFPE y congelados, RNA no poliadenilado, fracción mitocondrial y sexo discordante.</span></div></li>
+      <li><div class="paso-n" aria-hidden="true">02<svg viewBox="0 0 34 30"><path d="M4 3l12 12L4 27" fill="none" stroke="#C2185B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 3l12 12-12 12" fill="none" stroke="#F28DB2" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><b>PCA</b><span>5,000 genes estandarizados se resumen en 8 componentes, que explican el 44 % de la varianza.</span></div></li>
+      <li><div class="paso-n" aria-hidden="true">03<svg viewBox="0 0 34 30"><path d="M4 3l12 12L4 27" fill="none" stroke="#C2185B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 3l12 12-12 12" fill="none" stroke="#F28DB2" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><b>Clustering</b><span>K-means y Ward; K elegido por variación interna, dendrograma, estabilidad (ARI en submuestras) y concordancia.</span></div></li>
+      <li><div class="paso-n" aria-hidden="true">04<svg viewBox="0 0 34 30"><path d="M4 3l12 12L4 27" fill="none" stroke="#C2185B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 3l12 12-12 12" fill="none" stroke="#F28DB2" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><b>Interpretación</b><span>Expresión diferencial, rutas Hallmark, PAM50, receptores, χ² y modelos de Cox ajustados por edad y estadio.</span></div></li>
+      <li><div class="paso-n" aria-hidden="true">05<svg viewBox="0 0 34 30"><path d="M4 3l12 12L4 27" fill="none" stroke="#C2185B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 3l12 12-12 12" fill="none" stroke="#F28DB2" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><b>Validación independiente</b><span>Patología, pureza por DNA (ABSOLUTE), tejido normal adyacente y un estudio publicado de la misma cohorte.</span></div></li>
+    </ol>
+  </section>
+
+  <section class="panel" id="figura" aria-labelledby="t-figura">
+    <h2 id="t-figura">Los tumores en el espacio de PCA</h2>
+    <div class="barra-control">
+      <div class="segmentos" role="group" aria-label="Colorear los tumores por">
+        <button type="button" data-vista="cluster" aria-pressed="true">Cluster</button>
+        <button type="button" data-vista="pam" aria-pressed="false">PAM50</button>
+        <button type="button" data-vista="pur" aria-pressed="false">Pureza tumoral</button>
+        <button type="button" data-vista="eje" aria-pressed="false">Eje de tejido normal</button>
+      </div>
+    </div>
+    <div class="lienzo" id="lienzo">
+      <canvas id="dispersion" width="760" height="520" role="img" aria-label="Dispersión de 1,083 tumores sobre PC1 y PC2"></canvas>
+      <div class="tip" id="tip-pca" role="status"></div>
+    </div>
+    <div id="leyenda-pca"></div>
+    <p class="nota" id="nota-pca" style="text-align:center;margin-top:6px"></p>
+    <h3>Varianza explicada por componente</h3>
+    <svg class="grafica" id="pve" viewBox="0 0 620 150" role="img" aria-label="Porcentaje de varianza explicada por los primeros 10 componentes"></svg>
+  </section>
+
+  <section class="panel" id="resultados" aria-labelledby="t-res">
+    <h2 id="t-res">Resultados: tres grupos</h2>
+    <p>K-means y Ward coinciden en separar los tumores en dos grupos y respaldan, con distinta certeza, una partición en tres (K-means estable en 0.95; concordancia entre métodos ARI 0.43). Elige un cluster para ver su perfil; también se resalta en la figura.</p>
+    <div class="pestanas">
+      <div class="segmentos" role="group" aria-label="Cluster">
+        <button type="button" data-c="C1" aria-pressed="true">C1 · 209</button>
+        <button type="button" data-c="C2" aria-pressed="false">C2 · 470</button>
+        <button type="button" data-c="C3" aria-pressed="false">C3 · 404</button>
+      </div>
+    </div>
+    <div class="cambia" id="perfil-caja">
+      <dl class="perfil" id="perfil"></dl>
+      <p class="personas-titulo" id="personas-titulo"></p>
+      <div class="personas" id="personas" aria-hidden="true"></div>
+      <p class="lectura" id="lectura"></p>
+    </div>
+  </section>
+
+  <section class="panel" id="supervivencia" aria-labelledby="t-sup">
+    <h2 id="t-sup">Riesgo de C1 según el tiempo</h2>
+    <p>Hazard ratio de C1 frente a C2, ajustado por edad y estadio. El exceso de riesgo del subtipo basal se concentra en los primeros tres años y después desaparece, como en Dent et al. (2007).</p>
+    <svg class="grafica" id="bosque" viewBox="0 0 460 236" role="img" aria-label="Hazard ratio de C1 frente a C2 por desenlace y periodo"></svg>
+    <div class="leyenda" aria-hidden="true"><span style="display:inline-flex;align-items:center;gap:7px"><i style="background:var(--c1)"></i>Primeros 3 años</span><span style="display:inline-flex;align-items:center;gap:7px"><i style="background:var(--otro)"></i>Después de 3 años</span></div>
+  </section>
+
+  <section class="panel" id="descubre" aria-labelledby="t-desc">
+    <h2 id="t-desc">Posible descubrimiento: la división C2/C3 es un gradiente de tejido normal</h2>
+    <p class="destaca">Lo que separa a C2 de C3 no es un programa del tumor, sino cuánto tejido mamario sano (conductos, mioepitelio y grasa) quedó en el fragmento secuenciado.</p>
+    <div class="dos">
+      <div>
+        <h3>Posición de cada muestra sobre el eje de tejido normal</h3>
+        <p class="nota">0 = perfil medio de C3 · 1 = perfil medio del tejido normal adyacente. El eje se construyó solo con C3 y tejido normal, sin usar C2.</p>
+        <svg class="grafica" id="hist" viewBox="0 0 480 300" role="img" aria-label="Distribución del eje de tejido normal en C1, C2, C3 y tejido normal"></svg>
+      </div>
+      <div>
+        <h3>¿Qué queda al eliminar la composición?</h3>
+        <div class="barra-control">
+          <div class="segmentos" role="group" aria-label="Prueba">
+            <button type="button" data-prueba="genes" aria-pressed="true">Genes diferenciales</button>
+            <button type="button" data-prueba="ari" aria-pressed="false">Re-clustering</button>
+          </div>
+        </div>
+        <svg class="grafica" id="ajustes" viewBox="0 0 480 250" role="img" aria-label="Efecto de cada ajuste por composición"></svg>
+        <p class="nota" id="nota-ajustes"></p>
+      </div>
+    </div>
+    <div class="tres" style="margin-top:18px">
+      <div><b class="num">r = 0.74</b><p>La diferencia C2 − C3 en 15,496 genes sigue al perfil «tejido normal − C3». El control basal da 0.40 y dos mitades de C3 al azar, −0.02.</p></div>
+      <div><b class="num">52 % vs 35 %</b><p>Tumores con células normales en la laminilla según el patólogo: C2 frente a C3 (p = 1.3 × 10⁻⁷). El estroma no difiere.</p></div>
+      <div><b class="num">OR 2.91 → 1.14</b><p>El exceso de carcinomas lobulillares en C2 desaparece al comparar tumores con la misma cantidad de tejido normal.</p></div>
+    </div>
+  </section>
+
+  <section class="panel" id="netanely" aria-labelledby="t-net">
+    <h2 id="t-net">Contraste con el estudio de referencia</h2>
+    <p>Netanely et al. (2016) agruparon la misma cohorte con otra versión de los datos, otros genes y otra distancia, y describieron un subgrupo «inmune» de buen pronóstico, LumA-R2.</p>
+    <div class="tres">
+      <div><b class="num">92 %</b><p>de sus tumores LumA-R2 quedan en nuestro C2: es la misma partición, encontrada de forma independiente.</p></div>
+      <div><b class="num">98 %</b><p>de los genes de su firma LumA-R2 son más altos en el tejido normal adyacente que en C3, frente a 55 % de todos los genes.</p></div>
+      <div><b class="num">62 de 64</b><p>de nuestros tumores que su método agrupó junto con las 113 muestras de tejido sano son C2.</p></div>
+    </div>
+    <h3>Dónde caen sus grupos en nuestra partición</h3>
+    <svg class="grafica" id="netanely-barras" viewBox="0 0 900 230" role="img" aria-label="Porcentaje de cada grupo de Netanely et al. que cae en el cluster correspondiente de este estudio"></svg>
+    <p class="nota">Porcentaje de los tumores de cada grupo publicado que queda en el cluster indicado. La concordancia global es moderada (ARI 0.37–0.41), pero la estructura coincide.</p>
+  </section>
+
+  <section class="panel" id="conclusion" aria-labelledby="t-conc">
+    <h2 id="t-conc">Conclusión</h2>
+    <p>Sin usar información clínica, el clustering separó los dos grupos que definen el tratamiento: <strong>C1</strong> es el subtipo basal, triple negativo en 81 % de los casos, con un riesgo de morir por cáncer de mama casi cuatro veces mayor en los primeros tres años. HER2 positivo no forma un grupo propio.</p>
+    <p>La división luminal entre <strong>C2</strong> y <strong>C3</strong>, en cambio, refleja sobre todo la cantidad de tejido mamario normal en la muestra. Tres fuentes independientes lo sostienen (patología, DNA y tejido normal adyacente), y al eliminar ese eje la partición desaparece (ARI de 0.94 a 0.02). Tras quitar la composición solo persisten una mayor proliferación en C3 y estroma activado en C2.</p>
+    <p>Un clustering estable, reproducible y asociado a variables clínicas no garantiza haber encontrado un subtipo de la enfermedad. Todo subgrupo propuesto a partir de RNA de tejido tumoral debería contrastarse con una medida específica de tejido normal.</p>
+    <p class="nota">Las afirmaciones nuevas son hipótesis bien sostenidas dentro de TCGA; requieren validación en una cohorte independiente.</p>
+  </section>
+
+  <section class="panel" id="literatura" aria-labelledby="t-lit">
+    <h2 id="t-lit">Qué ya se sabía y qué es nuevo</h2>
+    <ul class="contraste">
+      <li>C1 corresponde al subtipo basal y triple negativo <b class="estado si">Confirmado</b><span>Perou et al. (2000); PAM50; inmunohistoquímica</span></li>
+      <li>El riesgo del subtipo basal se concentra en los primeros tres años <b class="estado si">Confirmado</b><span>Dent et al. (2007), en una cohorte independiente</span></li>
+      <li>El tejido normal sesga la clasificación genómica <b class="estado si">Ya conocido</b><span>Elloumi et al. (2011); aquí se confirma en TCGA-BRCA</span></li>
+      <li>La partición luminal C2/C3 es un gradiente de tejido normal <b class="estado nuevo">Posible contribución</b><span>Eje externo con AUC 0.96; re-clustering sin el eje con ARI 0.02</span></li>
+      <li>ESTIMATE no detecta el epitelio normal <b class="estado nuevo">Posible contribución</b><span>La brecha ESTIMATE − ABSOLUTE la explica el mioepitelio (β = 0.32)</span></li>
+      <li>El exceso de lobulillares en C2 se debe al tejido normal <b class="estado nuevo">Hipótesis nueva</b><span>Reinterpreta el fenotipo <i>reactive-like</i> de Ciriello et al. (2015)</span></li>
+    </ul>
+  </section>
+</main>
+
+<footer>
+  <div class="pie">
+    <h2>Fuentes clave y agradecimientos</h2>
+    <div class="pie-cols">
+      <div>
+        <h3>Fuentes</h3>
+        <ul>
+          <li>Goldman et al. (2020). UCSC Xena. <i>Nature Biotechnology, 38</i>, 675–678.</li>
+          <li>The Cancer Genome Atlas Network (2012). <i>Nature, 490</i>, 61–70.</li>
+          <li>Liu et al. (2018). TCGA-CDR. <i>Cell, 173</i>, 400–416.</li>
+          <li>Yoshihara et al. (2013). ESTIMATE. <i>Nature Communications, 4</i>, 2612.</li>
+          <li>Carter et al. (2012). ABSOLUTE. <i>Nature Biotechnology, 30</i>, 413–421.</li>
+          <li>Aran et al. (2015). Pureza tumoral. <i>Nature Communications, 6</i>, 8971.</li>
+          <li>Elloumi et al. (2011). <i>BMC Medical Genomics, 4</i>, 54.</li>
+          <li>Ciriello et al. (2015). <i>Cell, 163</i>, 506–519.</li>
+          <li>Dent et al. (2007). <i>Clinical Cancer Research, 13</i>, 4429–4434.</li>
+          <li>Netanely et al. (2016). <i>Breast Cancer Research, 18</i>, 74.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Agradecimientos</h3>
+        <p>A las pacientes que donaron sus muestras a The Cancer Genome Atlas y a los equipos de GDC, UCSC Xena y TCGA-CDR, que publican los datos de forma abierta.</p>
+        <p>Proyecto del curso SC3314 Inteligencia Artificial, Universidad de Monterrey. El reporte completo, con código y bibliografía, está en el repositorio del proyecto.</p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+const DATOS = /*__DATOS__*/null;
+const COL = { C1: "#C2185B", C2: "#2F6FD0", C3: "#B8640F", otro: "#8C8A84", sin: "#D9CDD3" };
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const NS = "http://www.w3.org/2000/svg";
+const fmt = (x, d = 2) => x.toLocaleString("es-MX", { minimumFractionDigits: d, maximumFractionDigits: d });
+function el(tag, attrs = {}, padre) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (padre) padre.appendChild(e);
+  return e;
+}
+function txt(padre, x, y, s, attrs = {}) { const t = el("text", { x, y, ...attrs }, padre); t.textContent = s; return t; }
+
+/* ---------- Listón: el único momento de entrada ---------- */
+(() => {
+  if (reduce) return;
+  ["liston-atras", "liston-frente"].forEach((id, i) => {
+    const p = document.getElementById(id), L = p.getTotalLength();
+    p.style.strokeDasharray = L; p.style.strokeDashoffset = L;
+    p.animate([{ strokeDashoffset: L }, { strokeDashoffset: 0 }], { duration: 1100, delay: 200 + i * 260, easing: "cubic-bezier(0.16, 1, 0.3, 1)", fill: "forwards" });
+  });
+})();
+
+/* ---------- Tooltip compartido para SVG ---------- */
+/* x, y llegan en coordenadas del SVG; se traducen a la posición real dentro del contenedor. */
+function tooltipEn(svg) {
+  const contenedor = svg.parentElement;
+  contenedor.style.position = "relative";
+  const t = document.createElement("div"); t.className = "tip"; t.setAttribute("role", "status");
+  contenedor.appendChild(t);
+  return {
+    mostrar(html, x, y) {
+      const rs = svg.getBoundingClientRect(), rc = contenedor.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+      const k = vb && vb.width ? rs.width / vb.width : 1, X = rs.left - rc.left + x * k, Y = rs.top - rc.top + y * k;
+      t.innerHTML = html; t.classList.add("visible");
+      const w = contenedor.clientWidth, tw = t.offsetWidth;
+      t.style.left = Math.min(Math.max(X - tw / 2, 4), w - tw - 4) + "px";
+      t.style.top = Math.max(Y - t.offsetHeight - 12, 4) + "px";
+    },
+    ocultar() { t.classList.remove("visible"); }
+  };
+}
+
+/* ---------- Dispersión PCA ---------- */
+const PAM = { Basal: ["Basal-like", COL.C1], LumA: ["Luminal A", COL.C2], LumB: ["Luminal B", COL.C3], Her2: ["HER2-enriq. / Normal-like", COL.otro], Normal: ["HER2-enriq. / Normal-like", COL.otro] };
+const filas = DATOS.rows.map(r => ({ x: r[0], y: r[1], c: r[2], pam: r[3], pur: r[4], eje: r[5], hist: r[6] }));
+const canvas = document.getElementById("dispersion"), ctx = canvas.getContext("2d");
+const tip = document.getElementById("tip-pca"), lienzo = document.getElementById("lienzo");
+let vista = "cluster", ocultos = new Set(), resaltado = null, pantalla = [];
+const xs = filas.map(f => f.x), ys = filas.map(f => f.y);
+const ext = (a) => { const lo = Math.min(...a), hi = Math.max(...a), m = (hi - lo) * 0.05; return [lo - m, hi + m]; };
+const [x0, x1] = ext(xs), [y0, y1] = ext(ys);
+function rampa(t) { // rosa claro -> ciruela, una sola tonalidad
+  const a = [249, 198, 216], b = [110, 12, 54];
+  t = Math.max(0, Math.min(1, t));
+  return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(",")})`;
+}
+function categoria(f) {
+  if (vista === "cluster") return f.c;
+  if (vista === "pam") return f.pam ? PAM[f.pam][0] : "Sin PAM50";
+  return null;
+}
+function colorDe(f) {
+  if (vista === "cluster") return COL[f.c];
+  if (vista === "pam") return f.pam ? PAM[f.pam][1] : COL.sin;
+  if (vista === "pur") return f.pur == null ? COL.sin : rampa((f.pur - 0.4) / 0.6);
+  return rampa((f.eje + 0.2) / 1.0);
+}
+function dibujar() {
+  const dpr = window.devicePixelRatio || 1, W = lienzo.clientWidth, H = Math.round(W * (W < 520 ? 0.82 : 0.8));
+  canvas.width = W * dpr; canvas.height = H * dpr; canvas.style.height = H + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const L = 46, R = 16, T = 16, B = 40;
+  const sx = v => L + (v - x0) / (x1 - x0) * (W - L - R), sy = v => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = "#EED3DE"; ctx.setLineDash([2, 4]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(sx(0), T); ctx.lineTo(sx(0), H - B); ctx.moveTo(L, sy(0)); ctx.lineTo(W - R, sy(0)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = "#6B3550"; ctx.font = "600 12px Mulish, sans-serif"; ctx.textAlign = "center";
+  const corto = W < 560;
+  ctx.fillText(corto ? "PC1 · receptor de estrógeno →" : "PC1 · programa del receptor de estrógeno →", (L + W - R) / 2, H - 12);
+  ctx.save(); ctx.translate(16, (T + H - B) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(corto ? "PC2 · soporte vs. proliferación →" : "PC2 · tejido de soporte vs. proliferación →", 0, 0); ctx.restore();
+  pantalla = [];
+  const r = W < 520 ? 2.6 : 3.4;
+  const orden = [...filas].sort((a, b) => (resaltado ? (a.c === resaltado) - (b.c === resaltado) : 0));
+  for (const f of orden) {
+    const cat = categoria(f), oculto = cat && ocultos.has(cat);
+    const tenue = oculto || (resaltado && f.c !== resaltado);
+    const px = sx(f.x), py = sy(f.y);
+    ctx.globalAlpha = tenue ? 0.12 : 0.92;
+    ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.fillStyle = colorDe(f); ctx.fill();
+    ctx.lineWidth = 1; ctx.strokeStyle = "#FFF8FB"; ctx.stroke();
+    if (!tenue) pantalla.push([px, py, f]);
+  }
+  ctx.globalAlpha = 1;
+}
+function leyenda() {
+  const caja = document.getElementById("leyenda-pca"), nota = document.getElementById("nota-pca");
+  if (vista === "cluster" || vista === "pam") {
+    const items = vista === "cluster"
+      ? [["C1", COL.C1, "C1 · basal"], ["C2", COL.C2, "C2 · luminal, más tejido normal"], ["C3", COL.C3, "C3 · luminal, más puro"]]
+      : [["Basal-like", COL.C1], ["Luminal A", COL.C2], ["Luminal B", COL.C3], ["HER2-enriq. / Normal-like", COL.otro], ["Sin PAM50", COL.sin]];
+    caja.className = "leyenda";
+    caja.innerHTML = items.map(([k, c, t]) => `<button type="button" data-cat="${k}" aria-pressed="${!ocultos.has(k)}"><i style="background:${c}"></i>${t || k}</button>`).join("");
+    caja.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+      const k = b.dataset.cat; ocultos.has(k) ? ocultos.delete(k) : ocultos.add(k); leyenda(); dibujar();
+    }));
+    nota.textContent = vista === "cluster"
+      ? "Pulsa una categoría de la leyenda para ocultarla. C1 se separa sobre PC1; C2 y C3 se dividen a lo largo de PC2."
+      : "El color de cada subtipo coincide con el del cluster que lo concentra: Basal en C1, Luminal A en C2 y Luminal B en C3.";
+  } else {
+    const pur = vista === "pur";
+    caja.className = "gradiente";
+    caja.innerHTML = `<span>${pur ? "0.40 · menos células tumorales" : "C3 (0)"}</span><span class="rampa" style="background:linear-gradient(90deg,${rampa(0)},${rampa(1)})"></span><span>${pur ? "1.00 · más puro" : "tejido normal (0.8)"}</span>`;
+    nota.textContent = pur
+      ? "Pureza estimada por ESTIMATE. PC2 correlaciona −0.70 con la pureza: el eje que separa C2 de C3 es en buena medida de composición."
+      : "Proyección de cada tumor sobre la dirección «C3 → tejido normal». Los tumores de C2 se desplazan hacia el tejido sano.";
+  }
+}
+document.querySelectorAll("[data-vista]").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll("[data-vista]").forEach(x => x.setAttribute("aria-pressed", x === b));
+  vista = b.dataset.vista; ocultos.clear(); leyenda(); dibujar();
+}));
+canvas.addEventListener("pointermove", e => {
+  const rc = canvas.getBoundingClientRect(), mx = e.clientX - rc.left, my = e.clientY - rc.top;
+  let mejor = null, d2 = 144;
+  for (const [px, py, f] of pantalla) { const d = (px - mx) ** 2 + (py - my) ** 2; if (d < d2) { d2 = d; mejor = [px, py, f]; } }
+  if (!mejor) { tip.classList.remove("visible"); return; }
+  const [px, py, f] = mejor;
+  tip.innerHTML = `<b>${f.c}</b> · ${f.pam ? PAM[f.pam][0].replace(" / Normal-like", "") : "sin PAM50"}<br>Pureza ${f.pur == null ? "—" : fmt(f.pur)} · eje ${fmt(f.eje)}<br>Histología: ${f.hist ? f.hist.toLowerCase() : "sin dato"}`;
+  tip.classList.add("visible");
+  const w = lienzo.clientWidth, tw = tip.offsetWidth;
+  tip.style.left = Math.min(Math.max(px - tw / 2, 4), w - tw - 4) + "px";
+  tip.style.top = Math.max(py - tip.offsetHeight - 12, 4) + "px";
+});
+canvas.addEventListener("pointerleave", () => tip.classList.remove("visible"));
+new ResizeObserver(() => dibujar()).observe(lienzo);
+leyenda();
+
+/* Cada gráfica SVG se dibuja al ancho real de su contenedor, para que el texto conserve su tamaño en cualquier pantalla. */
+function responsivo(svg, dibujarCon) {
+  let ultimo = 0;
+  const correr = () => {
+    const W = Math.max(280, Math.round(svg.getBoundingClientRect().width));
+    if (Math.abs(W - ultimo) < 2) return;
+    ultimo = W; svg.innerHTML = ""; dibujarCon(W);
+  };
+  new ResizeObserver(correr).observe(svg.parentElement);
+  correr();
+  return () => { ultimo = 0; correr(); };
+}
+
+/* ---------- Varianza explicada ---------- */
+(() => {
+  const svg = document.getElementById("pve"), pve = DATOS.pve.map(v => v * 100), tt = tooltipEn(svg);
+  responsivo(svg, W => {
+    const angosto = W < 520, H = 176, L = 38, B = 26, T = 24, max = Math.ceil(Math.max(...pve) / 5) * 5;
+    const bw = (W - L) / pve.length, gap = Math.min(12, bw * 0.3), y = v => T + (1 - v / max) * (H - T - B);
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    [0, 5, 10].filter(v => v <= max).forEach(v => { el("line", { class: v ? "rejilla" : "eje", x1: L, x2: W, y1: y(v), y2: y(v) }, svg); txt(svg, L - 6, y(v) + 4, v + " %", { "text-anchor": "end" }); });
+    pve.forEach((v, i) => {
+      const x = L + i * bw + gap / 2, ancho = bw - gap;
+      el("rect", { x, y: y(v), width: ancho, height: y(0) - y(v), rx: 4, fill: i < 8 ? COL.C1 : "#E7B7CA" }, svg);
+      txt(svg, x + ancho / 2, H - 6, (angosto ? "" : "PC") + (i + 1), { "text-anchor": "middle" });
+      const hit = el("rect", { class: "hit", x: L + i * bw, y: T, width: bw, height: H - T - B }, svg);
+      hit.addEventListener("pointerenter", () => tt.mostrar(`<b>PC${i + 1}</b> · ${fmt(v, 1)} % de la varianza${i < 8 ? "" : " · no se conserva"}`, x + ancho / 2, y(v)));
+      hit.addEventListener("pointerleave", () => tt.ocultar());
+    });
+    txt(svg, W, 12, angosto ? "8 componentes: 44 % de la varianza" : "8 componentes conservados: 44 % de la varianza", { "text-anchor": "end", class: "fuerte" });
+  });
+})();
+
+/* ---------- Perfiles de cluster ---------- */
+const PERFILES = {
+  C1: { filas: [["Tamaño", "209 tumores (19 %)"], ["PAM50", "Basal-like (86 %)"], ["Receptores", "Triple negativo (81 %)"], ["Programas", "Linaje basal, proliferación e infiltración inmune"], ["Pureza", "Intermedia (0.77)"], ["Pacientes", "Más jóvenes (54 años); 34 % afroamericanas"], ["Pronóstico", "Riesgo ~4 veces mayor en los primeros 3 años"]],
+        pct: 0.81, frase: "8 de cada 10 son triple negativos", lectura: "El clustering recuperó el subtipo basal casi sin errores: C1 contiene 133 de los 134 tumores Basal-like de la cohorte, sin haber usado ninguna etiqueta." },
+  C2: { filas: [["Tamaño", "470 tumores (43 %)"], ["PAM50", "Luminal A (74 %); concentra los Normal-like"], ["Receptores", "Receptor de estrógeno positivo (91 %)"], ["Programas", "Estroma, tejido adiposo y mioepitelio normal"], ["Pureza", "Baja (0.70)"], ["Histología", "73 % de todos los carcinomas lobulillares"], ["Pronóstico", "Grupo de referencia"]],
+        pct: 0.91, frase: "9 de cada 10 tienen receptor de estrógeno", lectura: "Su firma es casi toda de tejido no tumoral. Tras ajustar por pureza, 398 genes siguen más altos en C2, en su mayoría marcadores del conducto mamario normal (KRT14, KRT5, TP63)." },
+  C3: { filas: [["Tamaño", "404 tumores (37 %)"], ["PAM50", "Luminal A (47 %) y Luminal B (45 %)"], ["Receptores", "Receptor de estrógeno positivo (96 %)"], ["Programas", "Programa luminal intenso, más proliferación"], ["Pureza", "Alta (0.86)"], ["Pacientes", "Mayores (62 años); 78 % posmenopáusicas"], ["Pronóstico", "Igual que C2"]],
+        pct: 0.96, frase: "Casi 10 de cada 10 tienen receptor de estrógeno", lectura: "Es más proliferativo aun ajustando por pureza (E2F +0.23), coherente con que concentra 142 de los 192 tumores Luminal B de la cohorte." }
+};
+const PERSONA = "M13 2.5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zM6 15h14a3 3 0 0 1 3 3v12a2 2 0 0 1-2 2h-1v15a2.5 2.5 0 0 1-5 0V36h-4v11a2.5 2.5 0 0 1-5 0V32H5a2 2 0 0 1-2-2V18a3 3 0 0 1 3-3z";
+function mostrarPerfil(c, animar) {
+  const caja = document.getElementById("perfil-caja"), p = PERFILES[c];
+  const pintar = () => {
+    document.getElementById("perfil").innerHTML = p.filas.map(([a, b]) => `<div><dt>${a}</dt><dd>${b}</dd></div>`).join("");
+    document.getElementById("personas-titulo").textContent = p.frase;
+    document.getElementById("lectura").textContent = p.lectura;
+    const llenos = p.pct * 10;
+    document.getElementById("personas").innerHTML = Array.from({ length: 10 }, (_, i) => {
+      const f = Math.max(0, Math.min(1, llenos - i));
+      return `<svg viewBox="0 0 26 52"><defs><clipPath id="cp${c}${i}"><rect x="0" y="0" width="${26 * f}" height="52"/></clipPath></defs><path d="${PERSONA}" fill="#EED3DE"/><path d="${PERSONA}" fill="${COL[c]}" clip-path="url(#cp${c}${i})"/></svg>`;
+    }).join("");
+    caja.classList.remove("saliendo");
+  };
+  if (animar && !reduce) { caja.classList.add("saliendo"); setTimeout(pintar, 160); } else pintar();
+  resaltado = animar ? c : null; dibujar();
+}
+document.querySelectorAll("[data-c]").forEach(b => b.addEventListener("click", () => {
+  const ya = b.getAttribute("aria-pressed") === "true" && resaltado === b.dataset.c;
+  document.querySelectorAll("[data-c]").forEach(x => x.setAttribute("aria-pressed", x === b));
+  mostrarPerfil(b.dataset.c, true);
+  if (ya) { resaltado = null; dibujar(); }
+}));
+mostrarPerfil("C1", false);
+
+/* ---------- Forest plot ---------- */
+(() => {
+  const svg = document.getElementById("bosque"), tt = tooltipEn(svg);
+  const D = [["Específica por enfermedad", 3.85, 1.90, 7.78, "< 0.001", 0.34, 0.08, 1.50, "0.15"],
+             ["Libre de progresión", 2.28, 1.34, 3.89, "0.002", 0.98, 0.44, 2.17, "0.96"],
+             ["Supervivencia global", 2.39, 1.27, 4.50, "0.007", 0.84, 0.41, 1.73, "0.64"]];
+  responsivo(svg, W => {
+    // En pantallas angostas el nombre del desenlace va encima de sus dos intervalos.
+    const angosto = W < 440, L = angosto ? 8 : 182, R = 14, T = angosto ? 34 : 18, fila = angosto ? 84 : 66, lo = Math.log(0.06), hi = Math.log(9);
+    const dy1 = angosto ? 36 : 18, dy2 = angosto ? 60 : 42;
+    const x = v => L + (Math.log(v) - lo) / (hi - lo) * (W - L - R), H = T + D.length * fila + 22;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    (angosto ? [0.1, 0.5, 1, 2, 8] : [0.1, 0.25, 0.5, 1, 2, 4, 8]).forEach(v => { el("line", { class: v === 1 ? "eje" : "rejilla", x1: x(v), x2: x(v), y1: T - 4, y2: H - 22 }, svg); txt(svg, x(v), H - 6, String(v).replace(".", ","), { "text-anchor": "middle" }); });
+    D.forEach(([n, a, al, ah, ap, b, bl, bh, bp], i) => {
+      const y0 = T + i * fila;
+      txt(svg, 0, y0 + (angosto ? 16 : 34), n, { class: "fuerte" });
+      [[a, al, ah, ap, dy1, COL.C1, "Primeros 3 años"], [b, bl, bh, bp, dy2, COL.otro, "Después de 3 años"]].forEach(([v, l, h, p, dy, col, et]) => {
+        const yy = y0 + dy;
+        el("line", { x1: x(l), x2: x(h), y1: yy, y2: yy, stroke: col, "stroke-width": 2, "stroke-linecap": "round" }, svg);
+        el("circle", { cx: x(v), cy: yy, r: 5.5, fill: col, stroke: "#FCEBF2", "stroke-width": 2 }, svg);
+        const hit = el("rect", { class: "hit", x: L, y: yy - 11, width: W - L - R, height: 22 }, svg);
+        hit.addEventListener("pointerenter", () => tt.mostrar(`<b>${n}</b> · ${et}<br>HR ${fmt(v)} (IC 95 % ${fmt(l)}–${fmt(h)}), p = ${p}`, x(v), yy));
+        hit.addEventListener("pointerleave", () => tt.ocultar());
+      });
+    });
+    txt(svg, x(1) + 6, angosto ? 14 : T + 2, "HR = 1", {});
+  });
+})();
+
+/* ---------- Histogramas del eje ---------- */
+(() => {
+  const svg = document.getElementById("hist"), tt = tooltipEn(svg);
+  const grupos = [["C1", filas.filter(f => f.c === "C1").map(f => f.eje), COL.C1],
+                  ["C2", filas.filter(f => f.c === "C2").map(f => f.eje), COL.C2],
+                  ["C3", filas.filter(f => f.c === "C3").map(f => f.eje), COL.C3],
+                  ["Tejido normal", DATOS.eje_normal_tejido, COL.otro]];
+  responsivo(svg, W => {
+  const L = W < 440 ? 100 : 110, R = 8, T = 6, alto = 62, a = -0.6, b = 1.6, nb = W < 440 ? 30 : 44, paso = (b - a) / nb;
+  const x = v => L + (v - a) / (b - a) * (W - L - R);
+  grupos.forEach(([n, vals, col], g) => {
+    const cuenta = new Array(nb).fill(0);
+    vals.forEach(v => { const k = Math.floor((v - a) / paso); if (k >= 0 && k < nb) cuenta[k]++; });
+    const max = Math.max(...cuenta), base = T + (g + 1) * alto - 8;
+    const med = [...vals].sort((p, q) => p - q)[Math.floor(vals.length / 2)];
+    txt(svg, 0, base - 18, n, { class: "fuerte" });
+    txt(svg, 0, base - 3, `mediana ${fmt(med)}`, {});
+    el("line", { class: "eje", x1: L, x2: W - R, y1: base, y2: base }, svg);
+    cuenta.forEach((c, k) => {
+      if (!c) return;
+      const h = c / max * (alto - 16), bx = x(a + k * paso) + 0.5, bwid = Math.max(1, (W - L - R) / nb - 1.5);
+      el("rect", { x: bx, y: base - h, width: bwid, height: h, rx: 1.5, fill: col }, svg);
+      const hit = el("rect", { class: "hit", x: bx - 0.5, y: base - alto + 12, width: bwid + 1.5, height: alto - 12 }, svg);
+      hit.addEventListener("pointerenter", () => tt.mostrar(`<b>${n}</b> · eje ${fmt(a + k * paso)} a ${fmt(a + (k + 1) * paso)}<br>${c} muestras`, bx + bwid / 2, base - h));
+      hit.addEventListener("pointerleave", () => tt.ocultar());
+    });
+    el("line", { x1: x(med), x2: x(med), y1: base - alto + 14, y2: base, stroke: "#3A1426", "stroke-width": 1.5, "stroke-dasharray": "3 3" }, svg);
+  });
+  const yb = T + 4 * alto + 8;
+  [0, 0.5, 1].forEach(v => txt(svg, x(v), yb, fmt(v, 1), { "text-anchor": "middle" }));
+  svg.setAttribute("viewBox", `0 0 ${W} ${yb + 6}`);
+  });
+})();
+
+/* ---------- Netanely ---------- */
+(() => {
+  const svg = document.getElementById("netanely-barras"), tt = tooltipEn(svg);
+  const D = [["N4 · basal", "C1", 0.96, "178 de 186"], ["N2 · casi solo Luminal A", "C2", 0.95, ""], ["N1 · Luminal A y B", "C3", 0.77, ""],
+             ["LumA-R2 · «inmune»", "C2", 0.92, ""], ["LumA-R1", "C3", 0.67, ""], ["N5 · con el tejido sano", "C2", 0.97, "62 de 64"]];
+  responsivo(svg, W => {
+    // En pantallas angostas la etiqueta va encima de la barra.
+    const angosto = W < 560, L = angosto ? 0 : 210, R = 76, T = 4, fila = angosto ? 50 : 37, dy = angosto ? 20 : 7;
+    D.forEach(([n, c, v, extra], i) => {
+      const y = T + i * fila, w = (W - L - R);
+      if (angosto) txt(svg, 0, y + 14, n, { class: "fuerte" }); else txt(svg, L - 12, y + 20, n, { "text-anchor": "end", class: "fuerte" });
+      el("rect", { x: L, y: y + dy, width: w, height: 18, rx: 4, fill: "#F3D3E0" }, svg);
+      el("rect", { x: L, y: y + dy, width: w * v, height: 18, rx: 4, fill: COL[c] }, svg);
+      txt(svg, L + w + 10, y + dy + 14, Math.round(v * 100) + " % " + c, { class: "fuerte num" });
+      const hit = el("rect", { class: "hit", x: 0, y, width: W, height: fila }, svg);
+      hit.addEventListener("pointerenter", () => tt.mostrar(`<b>${n}</b><br>${Math.round(v * 100)} % queda en nuestro ${c}${extra ? " (" + extra + ")" : ""}`, L + w * v / 2, y + dy));
+      hit.addEventListener("pointerleave", () => tt.ocultar());
+    });
+    svg.setAttribute("viewBox", `0 0 ${W} ${T + D.length * fila}`);
+  });
+})();
+
+/* ---------- Ajustes sucesivos ---------- */
+(() => {
+  const svg = document.getElementById("ajustes"), nota = document.getElementById("nota-ajustes"), tt = tooltipEn(svg);
+  const P = {
+    genes: { max: 900, f: v => v.toLocaleString("es-MX"), unidad: "genes", nota: "Genes que separan C2 de C3 con q < 0.01 y una diferencia de al menos dos veces, según la medida de composición incluida en el modelo (839 tumores luminales).",
+      d: [["Sin ajuste", 816], ["Patología", 805], ["ESTIMATE", 385], ["ABSOLUTE", 389], ["Las tres juntas", 307], ["Eje normal", 81], ["Eje + ESTIMATE", 10]] },
+    ari: { max: 1, f: v => fmt(v), unidad: "ARI con la partición original", nota: "Se elimina por regresión cada medida de los 5,000 genes y se repite el procedimiento completo (PCA + K-means con K = 2). Un ARI cercano a 0 significa que la partición C2/C3 desapareció.",
+      d: [["Sin quitar nada", 0.94], ["Sin ESTIMATE", 0.14], ["Sin ABSOLUTE", 0.23], ["Sin eje normal", 0.02]] }
+  };
+  const R = 56, T = 6, fila = 34;
+  let barras = [], actual = "genes", W = 480, L = 132;
+  function pintar(clave, animar) {
+    const p = P[clave];
+    actual = clave;
+    W = Math.max(280, Math.round(svg.getBoundingClientRect().width)); L = W < 440 ? 120 : 132;
+    svg.innerHTML = ""; barras = [];
+    const H = T + p.d.length * fila;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    p.d.forEach(([n, v], i) => {
+      const y = T + i * fila, w = v / p.max * (W - L - R), resalta = /Eje|eje/.test(n) || (clave === "genes" && i === 0) || (clave === "ari" && i === 0);
+      txt(svg, L - 10, y + 19, n, { "text-anchor": "end", class: resalta ? "fuerte" : "" });
+      const r = el("rect", { class: "barra", x: L, y: y + 6, height: 20, rx: 4, width: animar && !reduce ? 0 : Math.max(w, 3), fill: /eje/i.test(n) ? COL.C1 : (i === 0 ? COL.C2 : "#E7B7CA") }, svg);
+      barras.push([r, Math.max(w, 3)]);
+      txt(svg, L + Math.max(w, 3) + 8, y + 20, p.f(v), { class: "fuerte num" });
+      const hit = el("rect", { class: "hit", x: 0, y, width: W, height: fila }, svg);
+      hit.addEventListener("pointerenter", () => tt.mostrar(`<b>${n}</b> · ${p.f(v)} ${p.unidad}`, L + Math.max(w, 3) / 2, y + 6));
+      hit.addEventListener("pointerleave", () => tt.ocultar());
+    });
+    if (animar && !reduce) requestAnimationFrame(() => requestAnimationFrame(() => barras.forEach(([r, w]) => r.setAttribute("width", w))));
+    nota.textContent = p.nota;
+  }
+  document.querySelectorAll("[data-prueba]").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll("[data-prueba]").forEach(x => x.setAttribute("aria-pressed", x === b));
+    pintar(b.dataset.prueba, true);
+  }));
+  let ancho = 0;
+  new ResizeObserver(() => { const w = Math.round(svg.getBoundingClientRect().width); if (Math.abs(w - ancho) > 1) { ancho = w; pintar(actual, false); } }).observe(svg.parentElement);
+})();
+</script>
+</body>
+</html>
